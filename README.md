@@ -47,8 +47,20 @@ Not yet run on hardware. What is proven, and how:
   of vblank's 183,500 clocks painting sprites and 3,675 of a line's 6,328
   rendering it.
 
-Still to do: measure the sound against MAME's own WAV (the YM2203 mix is the
-one part of the core taken on trust), and run it on a Pocket.
+* **The sound plays MAME's music.** `sim/run_sound.sh` replays the 68000's own
+  CIU traffic, recorded from MAME, into the core's Z80 and YM2203 and compares
+  eight seconds with MAME's recording: within 6% in the two bands the music
+  occupies (`artifacts/audio/comparison.txt`). The SSG's level against the FM
+  is still unmeasured, because the passage compared plays no SSG.
+* **It fits.** Quartus 18.1: 67% of the ALMs, 65% of the block memory bits,
+  279 of 308 RAM blocks, 14 of 66 DSPs.
+
+Still to do: **close timing**. The 96 MHz clock is short by about a
+nanosecond, every failing path inside the sprite engine's fixed-point
+arithmetic, which is being pipelined and narrowed a path at a time (each
+change is checked against the frozen-state gate before it is pushed, so the
+picture cannot drift while the timing is chased). And then run it on a
+Pocket.
 
 <p align="center">
   <img src="artifacts/rtl/3300.png" width="320" alt="the title screen, drawn by the RTL"><br>
