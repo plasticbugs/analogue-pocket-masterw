@@ -15,7 +15,7 @@ vblank, which is what draws the game's hand-written title.
 |---|---|---|
 | 68000 @ 12 MHz | fx68k (cycle-accurate) | system bench |
 | Z80 @ 6 MHz | tv80 | system bench |
-| YM2203 @ 3 MHz | jotego's jt03 | *not yet measured against MAME* |
+| YM2203 @ 3 MHz | jotego's jt03 | within 6% of MAME's own recording across the music's bands (`sim/run_sound.sh`) |
 | TC0180VCU | `rtl/tc0180vcu.sv` and the three engines beside it | **pixel-identical to MAME** on nine frozen states (`sim/run_video.sh`) |
 | TC0040IOC | `rtl/tc0040ioc.sv` | — |
 | PC060HA | `rtl/pc060ha.sv`, a literal translation of MAME's | system bench |
@@ -46,7 +46,6 @@ Not yet run on hardware. What is proven, and how:
 * **The budgets are measured, not assumed.** The busiest frame spends 45,000
   of vblank's 183,500 clocks painting sprites and 3,675 of a line's 6,328
   rendering it.
-
 * **The sound plays MAME's music.** `sim/run_sound.sh` replays the 68000's own
   CIU traffic, recorded from MAME, into the core's Z80 and YM2203 and compares
   eight seconds with MAME's recording: within 6% in the two bands the music
