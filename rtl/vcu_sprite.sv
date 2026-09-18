@@ -103,6 +103,8 @@ module vcu_sprite #(
     // blit
     logic signed [12:0] destx, desty, destendx, destendy, curx, cury;
     logic signed [31:0] srcx, srcy, cursrcx, dx, dy;
+    logic [13:0] clipx_r, clipy_r;
+    logic signed [31:0] flipx_t, flipy_t;
     logic  [5:0] fetch_i;
     logic [17:0] tile_base;
     logic [16:0] row_base;
@@ -179,7 +181,7 @@ module vcu_sprite #(
     typedef enum logic [4:0] {
         S_IDLE, S_E0, S_E1, S_E2, S_E3, S_E4, S_E5, S_E6, S_E7,
         S_PIECE, S_ADVANCE, S_ADVANCE2, S_SKIPCHK, S_DIVX, S_DIVXW, S_DIVY, S_DIVYW,
-        S_CLIPX, S_CLIPY, S_FLIP,
+        S_CLIPX, S_CLIPY, S_MULX, S_MULY, S_FLIPM, S_FLIP,
         S_FETCH, S_ROWSET, S_PIX, S_NEXT, S_DONE
     } state_t;
     state_t st;
@@ -308,35 +310,49 @@ module vcu_sprite #(
             st <= S_CLIPX;
         end
 
+        // The clip amount, the step multiply and the flip's mirror term each
+        // get their own clock: as one cone -- subtract, multiply, subtract --
+        // this was the critical path at 96 MHz once the big-sprite arithmetic
+        // was pipelined.  Four clocks a sprite is nothing against the 183,500
+        // in vblank.
         S_CLIPX: begin
-            if (destx < CX0) begin
-                srcx  <= $signed({18'd0, clip_l}) * dx;
-                destx <= CX0;
-            end else begin
-                srcx <= '0;
-            end
+            clipx_r <= (destx < CX0) ? clip_l : 14'd0;
+            if (destx < CX0) destx <= CX0;
             if (destendx > CX1) destendx <= CX1;
             st <= S_CLIPY;
         end
 
         S_CLIPY: begin
-            if (desty < CY0) begin
-                srcy  <= $signed({18'd0, clip_t}) * dy;
-                desty <= CY0;
-            end else begin
-                srcy <= '0;
-            end
+            clipy_r <= (desty < CY0) ? clip_t : 14'd0;
+            if (desty < CY0) desty <= CY0;
             if (destendy > CY1) destendy <= CY1;
-            st <= S_FLIP;
+            st <= S_MULX;
+        end
+
+        S_MULX: begin
+            srcx <= $signed({18'd0, clipx_r}) * dx;
+            st   <= S_MULY;
+        end
+
+        S_MULY: begin
+            srcy <= $signed({18'd0, clipy_r}) * dy;
+            st   <= S_FLIPM;
+        end
+
+        // the mirror terms, MAME's (dstwidth - 1) * dx and its Y twin
+        S_FLIPM: begin
+            flipx_t <= ($signed({{18{zx[13]}}, zx}) - 32'sd1) * dx;
+            flipy_t <= ($signed({{18{zy[13]}}, zy}) - 32'sd1) * dy;
+            st      <= S_FLIP;
         end
 
         S_FLIP: begin
             if (flipx) begin
-                srcx <= ($signed({{18{zx[13]}}, zx}) - 32'sd1) * dx - srcx;
+                srcx <= flipx_t - srcx;
                 dx   <= -dx;
             end
             if (flipy) begin
-                srcy <= ($signed({{18{zy[13]}}, zy}) - 32'sd1) * dy - srcy;
+                srcy <= flipy_t - srcy;
                 dy   <= -dy;
             end
             tile_base <= {e_code[12:0], 5'd0};   // code % 8192, 32 words each
