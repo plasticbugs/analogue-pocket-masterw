@@ -393,3 +393,16 @@ credit and a game.
   0x60. MAME's zoom is not hardware-exact (it scales each 16x16 piece
   separately); this core reproduces MAME.
 * The sprite table is used up to entry 406 of 408.
+
+---
+
+## 10. The YM2203's strobe
+
+The Z80 writes the chip with its own `/WR`, about two Z80 clocks -- 333 ns at
+6 MHz, which is one clock of the 3 MHz chip. The core passes that strobe
+through unchanged rather than shaping it into exactly one chip clock, because
+that is what the board does; jt12 acts on the strobe as a level, so a strobe
+that happens to straddle two chip clocks writes the register twice. Every
+OPN register is idempotent under a repeat -- key-on is a level, the timer
+control's flag resets are edges the chip has already taken -- so the two are
+the same, and the audio comparison against MAME is what would show otherwise.
