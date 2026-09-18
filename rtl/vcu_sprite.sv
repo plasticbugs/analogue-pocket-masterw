@@ -119,17 +119,17 @@ module vcu_sprite #(
     wire [15:0] step_ay = 16'({8'd0, y_no}  * {8'd0, yinv}) + 16'd15;
     wire [15:0] step_by = 16'({7'd0, y_no1} * {8'd0, yinv}) + 16'd15;
 
-    wire signed [12:0] big_x  = xlatch + signed'({1'b0, step_a[15:4]});
-    wire signed [12:0] big_y  = ylatch + signed'({1'b0, step_ay[15:4]});
-    wire signed [12:0] big_x2 = xlatch + signed'({1'b0, step_b[15:4]});
-    wire signed [12:0] big_y2 = ylatch + signed'({1'b0, step_by[15:4]});
+    wire signed [12:0] big_x  = xlatch + $signed({1'b0, step_a[15:4]});
+    wire signed [12:0] big_y  = ylatch + $signed({1'b0, step_ay[15:4]});
+    wire signed [12:0] big_x2 = xlatch + $signed({1'b0, step_b[15:4]});
+    wire signed [12:0] big_y2 = ylatch + $signed({1'b0, step_by[15:4]});
 
     wire signed [12:0] x_signed = {{3{e_x[9]}}, e_x[9:0]};
     wire signed [12:0] y_signed = {{3{e_y[9]}}, e_y[9:0]};
 
     // the piece's size, signed, for the position arithmetic
-    wire signed [12:0] zxs = signed'(zx[12:0]);
-    wire signed [12:0] zys = signed'(zy[12:0]);
+    wire signed [12:0] zxs = $signed(zx[12:0]);
+    wire signed [12:0] zys = $signed(zy[12:0]);
 
     wire  [3:0] src_col = cursrcx[19:16];
     wire  [3:0] src_row = srcy[19:16];
@@ -241,8 +241,8 @@ module vcu_sprite #(
                 zoomy <= zoomyl;
                 sx    <= big_x;
                 sy    <= big_y;
-                zx    <= signed'({{1{big_x2[12]}}, big_x2}) - signed'({{1{big_x[12]}}, big_x});
-                zy    <= signed'({{1{big_y2[12]}}, big_y2}) - signed'({{1{big_y[12]}}, big_y});
+                zx    <= $signed({{1{big_x2[12]}}, big_x2}) - $signed({{1{big_x[12]}}, big_x});
+                zy    <= $signed({{1{big_y2[12]}}, big_y2}) - $signed({{1{big_y[12]}}, big_y});
                 // step Y first, then X, then the big sprite is finished
                 if (y_no >= y_num) begin
                     y_no <= 8'd0;
@@ -256,8 +256,8 @@ module vcu_sprite #(
                 zoomy <= e_zoom[7:0];
                 sx    <= x_signed;
                 sy    <= y_signed;
-                zx    <= signed'({5'd0, (9'h100 - {1'b0, e_zoom[15:8]}) >> 4});
-                zy    <= signed'({5'd0, (9'h100 - {1'b0, e_zoom[7:0]})  >> 4});
+                zx    <= $signed({5'd0, (9'h100 - {1'b0, e_zoom[15:8]}) >> 4});
+                zy    <= $signed({5'd0, (9'h100 - {1'b0, e_zoom[7:0]})  >> 4});
             end
             st <= S_SKIPCHK;
         end
@@ -281,20 +281,20 @@ module vcu_sprite #(
 
         S_DIVX:  st <= S_DIVXW;
         S_DIVXW: if (!div_busy) begin
-            dx      <= signed'({11'd0, div_quo});
+            dx      <= $signed({11'd0, div_quo});
             div_den <= zy;
             div_go  <= 1'b1;
             st      <= S_DIVY;
         end
         S_DIVY:  st <= S_DIVYW;
         S_DIVYW: if (!div_busy) begin
-            dy <= signed'({11'd0, div_quo});
+            dy <= $signed({11'd0, div_quo});
             st <= S_CLIPX;
         end
 
         S_CLIPX: begin
             if (destx < CX0) begin
-                srcx  <= signed'({18'd0, clip_l}) * dx;
+                srcx  <= $signed({18'd0, clip_l}) * dx;
                 destx <= CX0;
             end else begin
                 srcx <= '0;
@@ -305,7 +305,7 @@ module vcu_sprite #(
 
         S_CLIPY: begin
             if (desty < CY0) begin
-                srcy  <= signed'({18'd0, clip_t}) * dy;
+                srcy  <= $signed({18'd0, clip_t}) * dy;
                 desty <= CY0;
             end else begin
                 srcy <= '0;
@@ -316,11 +316,11 @@ module vcu_sprite #(
 
         S_FLIP: begin
             if (flipx) begin
-                srcx <= (signed'({{18{zx[13]}}, zx}) - 32'sd1) * dx - srcx;
+                srcx <= ($signed({{18{zx[13]}}, zx}) - 32'sd1) * dx - srcx;
                 dx   <= -dx;
             end
             if (flipy) begin
-                srcy <= (signed'({{18{zy[13]}}, zy}) - 32'sd1) * dy - srcy;
+                srcy <= ($signed({{18{zy[13]}}, zy}) - 32'sd1) * dy - srcy;
                 dy   <= -dy;
             end
             tile_base <= {e_code[12:0], 5'd0};   // code % 8192, 32 words each

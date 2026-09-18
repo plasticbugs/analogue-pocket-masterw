@@ -163,7 +163,7 @@ module vcu_line #(
     wire  [3:0] cidx     = attr[6] ? ~pix[3:0] : pix[3:0];      // attribute flip X
     wire  [3:0] pen      = pens[60 - 4*cidx +: 4];
     wire  [3:0] tpen     = pens[60 - 4*{1'b0, pix[2:0]} +: 4];
-    wire signed [10:0] sxpix = px + signed'({7'd0, pix[3:0]});
+    wire signed [10:0] sxpix = px + $signed({7'd0, pix[3:0]});
 
     // text layer: one word per character, its bit 11 choosing a 2048-character
     // bank, its top nibble the colour
@@ -256,7 +256,7 @@ module vcu_line #(
         S_SCR2: begin
             scrolly <= scr_q;
             mx0     <= mx0_next;
-            px      <= -signed'({7'd0, mx0_next[3:0]});
+            px      <= -$signed({7'd0, mx0_next[3:0]});
             tcol    <= 6'd0;
             st      <= S_SETUP;
         end
@@ -338,7 +338,7 @@ module vcu_line #(
             pens[63:32] <= expand(gfx_q);
             gfx_req     <= 1'b0;
             pix         <= 5'd0;
-            px          <= signed'({2'd0, tcol, 3'd0});
+            px          <= $signed({2'd0, tcol, 3'd0});
             st          <= S_XPIX;
         end
         S_XPIX: begin

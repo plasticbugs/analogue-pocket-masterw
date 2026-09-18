@@ -17,6 +17,11 @@
 module clk_enables (
     input  logic clk,
     input  logic rst,
+    // One pulse just after each edge of the platform's video clock, which
+    // restarts the dot divider.  Without it the dot enable would sit at
+    // whatever phase the reset left it in, and the pixel handed to the video
+    // clock could be sampled while it changes (METHODOLOGY section 5.4).
+    input  logic pix_sync,
     output logic cen_phi1,
     output logic cen_phi2,
     output logic cen_z80,
@@ -32,7 +37,9 @@ module clk_enables (
             dpix <= 4'd0;
         end else begin
             div  <= div + 5'd1;
-            dpix <= (dpix == 4'd13) ? 4'd0 : dpix + 4'd1;
+            if (pix_sync)         dpix <= 4'd0;
+            else if (dpix == 4'd13) dpix <= 4'd0;
+            else                  dpix <= dpix + 4'd1;
         end
     end
 

@@ -12,6 +12,7 @@
 module masterw_core (
     input  logic        clk,
     input  logic        rst,
+    input  logic        pix_sync,       // see clk_enables.sv
 
     // ---- memories ----
     output logic        mrom_req,       // 68000 program, 512 KB
@@ -68,7 +69,7 @@ module masterw_core (
     // --------------------------------------------------------- clock enables
     logic cen_phi1, cen_phi2, cen_z80, cen_ym;
     clk_enables u_cen (
-        .clk(clk), .rst(rst),
+        .clk(clk), .rst(rst), .pix_sync(pix_sync),
         .cen_phi1(cen_phi1), .cen_phi2(cen_phi2),
         .cen_z80(cen_z80), .cen_ym(cen_ym), .cen_pix(pix_ce)
     );
@@ -123,11 +124,10 @@ module masterw_core (
         .vpos(vpos), .spr_busy(), .spr_cycles(spr_cycles), .ren_cycles(ren_cycles)
     );
 
-    // the palette read is one clock behind the index, so the data enable is
-    // delayed to match
-    logic de_d;
-    always_ff @(posedge clk) if (pix_ce) de_d <= pix_de;
-    assign de = de_d;
+    // The palette read follows the index by one system clock, not by a dot,
+    // so the data enable is the chip's own.  Both are sampled by clk_vid
+    // about ten clocks into the dot, where each has long settled.
+    assign de = pix_de;
 
     tc0040ioc u_ioc (
         .clk(clk), .rst(rst),
@@ -171,11 +171,11 @@ module masterw_core (
     // section 8.
     localparam logic signed [8:0] FM_NUM  = 9'sd205;   // 0.801
     localparam logic signed [8:0] PSG_NUM = 9'sd64;    // 0.250
-    wire signed [11:0] psg_sum = signed'({4'd0, psg_a}) + signed'({4'd0, psg_b})
-                                 + signed'({4'd0, psg_c}) - 12'sd384;
+    wire signed [11:0] psg_sum = $signed({4'd0, psg_a}) + $signed({4'd0, psg_b})
+                                 + $signed({4'd0, psg_c}) - 12'sd384;
     wire signed [17:0] psg_s = {psg_sum, 6'd0};
-    wire signed [26:0] fm_w  = signed'({{11{fm_snd[15]}}, fm_snd}) * FM_NUM;
-    wire signed [26:0] psg_w = signed'({{9{psg_s[17]}}, psg_s}) * PSG_NUM;
+    wire signed [26:0] fm_w  = $signed({{11{fm_snd[15]}}, fm_snd}) * FM_NUM;
+    wire signed [26:0] psg_w = $signed({{9{psg_s[17]}}, psg_s}) * PSG_NUM;
     wire signed [26:0] mixed = (fm_w + psg_w) >>> 8;
 
     always_ff @(posedge clk) begin

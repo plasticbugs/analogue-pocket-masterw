@@ -113,10 +113,15 @@ int main(int argc, char **argv) {
     const uint64_t AUDIO_DIV = 96000000ull / 48000ull;   // 48 kHz
     unsigned worst_spr = 0, worst_ren = 0;
 
+    // The colour comes out of the palette one clock after the index, so a
+    // pixel is read the clock after its dot enable -- which is where clk_vid
+    // samples it on the panel too.
+    bool cap = false;
     while (frame_no <= frames) {
+        bool want = dut->pix_ce && dut->de;
         tick();
         if (dut->watchdog_reset) watchdogs++;
-        if (dut->pix_ce && dut->de) {
+        if (cap) {
             if (px < W * H) {
                 uint32_t c = dut->rgb;
                 frame[3 * px + 0] = (c >> 16) & 0xff;
@@ -125,6 +130,7 @@ int main(int argc, char **argv) {
                 px++;
             }
         }
+        cap = want;
         if ((int)dut->vpos != last_vpos) {
             last_vpos = dut->vpos;
             if (last_vpos == 239) {
