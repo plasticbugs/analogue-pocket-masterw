@@ -364,8 +364,27 @@ Only indices up to 0x6FF are reachable: tx 0x000-0x0FF, framebuffer
 * whether the game ever uses sprite zoom or multi-tile sprites, and how much
   of the 408-entry table is live on a busy frame — this sets the sprite
   engine's cycle budget;
-* the YM2203 FM and SSG output levels against MAME's WAV, including whatever
-  the YM3014B and the board's filters do to them.
+* the SSG's level against the FM. The eight seconds compared against MAME
+  play no SSG at all, so its scale is the one number in the core still taken
+  on trust; the FM is measured (below).
+* what the YM3014B and the board's analogue filters do to the output, which
+  MAME does not model for this driver either.
+
+The FM **is** measured. `sim/run_sound.sh` replays MAME's own CIU traffic
+into the core's Z80 and YM2203 and compares eight seconds with MAME's
+recording of the same:
+
+| | MAME | core | ratio |
+|---|---|---|---|
+| 120-400 Hz | 12.49 | 12.57 | 1.006 |
+| 400-1200 Hz | 5.93 | 5.60 | 0.944 |
+| 40-120 Hz | 11.08 | 15.21 | 1.373 |
+| RMS | 1312 | 1853 | 1.413 |
+
+The two bands the music occupies are within 6%. The excess below 120 Hz is
+low-frequency wander -- the SSG channels are unipolar, as the chip's DAC is,
+and the offset is removed by the board's coupling capacitor and by the
+Pocket's DC blocker rather than in the mixer.
 
 ---
 

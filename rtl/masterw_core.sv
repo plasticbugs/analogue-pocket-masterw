@@ -161,21 +161,28 @@ module masterw_core (
     );
 
     // MAME mixes the three SSG channels at 0.25 each and the FM at 0.80
-    // (ref/mame/taito_b.cpp, masterw machine config).  The SSG channels come
-    // out of jt49 as 8-bit unsigned levels, so they are summed, centred and
-    // shifted up to sit alongside the FM's signed 16 bits.
+    // (ref/mame/taito_b.cpp, masterw machine config), and those weights are
+    // what the numerators below are.
     //
-    // The relative weight is MAME's; the absolute scaling of the SSG against
-    // the FM has not yet been measured against MAME's own WAV, so this is the
-    // one part of the core still taken on trust.  See docs/hardware.md
-    // section 8.
+    // The SSG channels leave jt49 as 8-bit *unipolar* levels -- 0 is silence,
+    // as the chip's own DAC is -- so they are summed and scaled but never
+    // centred.  Centring them put a fixed -6 dBFS step on the output whenever
+    // the SSG was quiet, which is most of this game: the first measurement
+    // against MAME showed the core five times too loud with almost all of it
+    // DC.  The board removes the offset with a coupling capacitor and the
+    // Pocket's audio path with its DC blocker, so the offset belongs there,
+    // not here.
+    //
+    // Against MAME's own recording the FM lands within about 20% across the
+    // bands the music occupies (sim/run_sound.sh).  The SSG's scale against
+    // the FM is still unmeasured, because the passage that was compared plays
+    // no SSG at all -- see docs/hardware.md section 8.
     localparam logic signed [8:0] FM_NUM  = 9'sd205;   // 0.801
     localparam logic signed [8:0] PSG_NUM = 9'sd64;    // 0.250
-    wire signed [11:0] psg_sum = $signed({4'd0, psg_a}) + $signed({4'd0, psg_b})
-                                 + $signed({4'd0, psg_c}) - 12'sd384;
-    wire signed [17:0] psg_s = {psg_sum, 6'd0};
+    wire  [9:0] psg_sum = {2'd0, psg_a} + {2'd0, psg_b} + {2'd0, psg_c};
+    wire signed [16:0] psg_s = $signed({2'b00, psg_sum, 5'd0});
     wire signed [26:0] fm_w  = $signed({{11{fm_snd[15]}}, fm_snd}) * FM_NUM;
-    wire signed [26:0] psg_w = $signed({{9{psg_s[17]}}, psg_s}) * PSG_NUM;
+    wire signed [26:0] psg_w = $signed({{10{psg_s[16]}}, psg_s}) * PSG_NUM;
     wire signed [26:0] mixed = (fm_w + psg_w) >>> 8;
 
     always_ff @(posedge clk) begin

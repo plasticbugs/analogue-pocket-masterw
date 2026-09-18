@@ -111,7 +111,10 @@ module masterw_sound (
     end
     wire cache_hit = cvalid_q && (ctag_q == ctag);
 
-    typedef enum logic [1:0] { R_IDLE, R_LOOK, R_FETCH } rstate_t;
+    // R_DONE holds the answer until the Z80 drops its read.  Without it the
+    // state machine re-enters the lookup while the read is still asserted,
+    // re-asserts WAIT, and the Z80 never sees it released.
+    typedef enum logic [1:0] { R_IDLE, R_LOOK, R_FETCH, R_DONE } rstate_t;
     rstate_t rstate;
     logic [7:0] rom_data;
 
@@ -125,7 +128,7 @@ module masterw_sound (
             R_LOOK: begin
                 if (cache_hit) begin
                     rom_data <= cdata_q;
-                    rstate   <= R_IDLE;
+                    rstate   <= R_DONE;
                 end else begin
                     rom_addr <= rom_a;
                     rom_req  <= 1'b1;
@@ -138,14 +141,15 @@ module masterw_sound (
                 crom_data[cidx]  <= rom_q;
                 crom_tag[cidx]   <= ctag;
                 crom_valid[cidx] <= 1'b1;
-                rstate   <= R_IDLE;
+                rstate   <= R_DONE;
             end
+            R_DONE: if (!(rom_s && rd)) rstate <= R_IDLE;
             default: rstate <= R_IDLE;
         endcase
     end
 
-    // the Z80 waits only while a ROM read is actually being fetched
-    assign wait_n = ~(rom_s && rd && rstate != R_IDLE);
+    // the Z80 waits from the moment it asks until the answer is in hand
+    assign wait_n = ~(rom_s && rd && rstate != R_DONE);
 
     // -------------------------------------------------------------- YM2203
     logic        ym_cs_n, ym_wr_n;

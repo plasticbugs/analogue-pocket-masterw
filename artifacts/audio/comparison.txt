@@ -1,0 +1,26 @@
+Sound board against MAME, 8 s from reset with a coin at frame 200 and start
+at frame 300 (tools/probe_ciu.lua replays MAME's own CIU traffic into the
+core's Z80 and YM2203; sim/run_sound.sh).
+
+== against MAME ==
+-- mix --
+                      MAME        core     ratio
+peak                 12039       19623     1.630
+rms                 1311.8      1853.2     1.413
+40-120 Hz            11.08       15.21     1.373
+120-400 Hz           12.49       12.57     1.006
+400-1200 Hz           5.93        5.60     0.944
+-- jt03 --
+                      MAME        core     ratio
+peak                 12039       24504     2.035
+rms                 1311.8      2314.3     1.764
+40-120 Hz            11.08       19.00     1.715
+120-400 Hz           12.49       15.70     1.257
+400-1200 Hz           5.93        6.99     1.179
+-- fm --
+                      MAME        core     ratio
+peak                 12039       24504     2.035
+rms                 1311.8      2314.3     1.764
+40-120 Hz            11.08       19.00     1.715
+120-400 Hz           12.49       15.70     1.257
+400-1200 Hz           5.93        6.99     1.179

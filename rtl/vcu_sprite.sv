@@ -119,10 +119,12 @@ module vcu_sprite #(
     wire [15:0] step_ay = 16'({8'd0, y_no}  * {8'd0, yinv}) + 16'd15;
     wire [15:0] step_by = 16'({7'd0, y_no1} * {8'd0, yinv}) + 16'd15;
 
-    wire signed [12:0] big_x  = xlatch + $signed({1'b0, step_a[15:4]});
-    wire signed [12:0] big_y  = ylatch + $signed({1'b0, step_ay[15:4]});
-    wire signed [12:0] big_x2 = xlatch + $signed({1'b0, step_b[15:4]});
-    wire signed [12:0] big_y2 = ylatch + $signed({1'b0, step_by[15:4]});
+    // The products are registered before anything is done with them: as one
+    // combinational cone -- multiply, add the latch, subtract -- this was the
+    // design's critical path at 96 MHz, 3.3 ns over.  The sprite engine has
+    // clocks to spare, so it spends one.
+    logic [11:0] stepa_r, stepb_r, stepay_r, stepby_r;
+    logic        was_big;
 
     wire signed [12:0] x_signed = {{3{e_x[9]}}, e_x[9:0]};
     wire signed [12:0] y_signed = {{3{e_y[9]}}, e_y[9:0]};
@@ -176,7 +178,7 @@ module vcu_sprite #(
     // ---------------------------------------------------------------- FSM
     typedef enum logic [4:0] {
         S_IDLE, S_E0, S_E1, S_E2, S_E3, S_E4, S_E5, S_E6, S_E7,
-        S_PIECE, S_ADVANCE, S_SKIPCHK, S_DIVX, S_DIVXW, S_DIVY, S_DIVYW,
+        S_PIECE, S_ADVANCE, S_ADVANCE2, S_SKIPCHK, S_DIVX, S_DIVXW, S_DIVY, S_DIVYW,
         S_CLIPX, S_CLIPY, S_FLIP,
         S_FETCH, S_ROWSET, S_PIX, S_NEXT, S_DONE
     } state_t;
@@ -235,14 +237,16 @@ module vcu_sprite #(
             st <= S_ADVANCE;
         end
 
+        // first clock: the four products, and the big sprite's own advance
         S_ADVANCE: begin
+            was_big  <= big;
+            stepa_r  <= step_a[15:4];
+            stepb_r  <= step_b[15:4];
+            stepay_r <= step_ay[15:4];
+            stepby_r <= step_by[15:4];
             if (big) begin
                 zoomx <= zoomxl;
                 zoomy <= zoomyl;
-                sx    <= big_x;
-                sy    <= big_y;
-                zx    <= $signed({{1{big_x2[12]}}, big_x2}) - $signed({{1{big_x[12]}}, big_x});
-                zy    <= $signed({{1{big_y2[12]}}, big_y2}) - $signed({{1{big_y[12]}}, big_y});
                 // step Y first, then X, then the big sprite is finished
                 if (y_no >= y_num) begin
                     y_no <= 8'd0;
@@ -254,10 +258,22 @@ module vcu_sprite #(
             end else begin
                 zoomx <= e_zoom[15:8];
                 zoomy <= e_zoom[7:0];
-                sx    <= x_signed;
-                sy    <= y_signed;
-                zx    <= $signed({5'd0, (9'h100 - {1'b0, e_zoom[15:8]}) >> 4});
-                zy    <= $signed({5'd0, (9'h100 - {1'b0, e_zoom[7:0]})  >> 4});
+            end
+            st <= S_ADVANCE2;
+        end
+
+        // second clock: this piece's position and size
+        S_ADVANCE2: begin
+            if (was_big) begin
+                sx <= xlatch + $signed({1'b0, stepa_r});
+                sy <= ylatch + $signed({1'b0, stepay_r});
+                zx <= $signed({2'b0, stepb_r}) - $signed({2'b0, stepa_r});
+                zy <= $signed({2'b0, stepby_r}) - $signed({2'b0, stepay_r});
+            end else begin
+                sx <= x_signed;
+                sy <= y_signed;
+                zx <= $signed({5'd0, (9'h100 - {1'b0, e_zoom[15:8]}) >> 4});
+                zy <= $signed({5'd0, (9'h100 - {1'b0, e_zoom[7:0]})  >> 4});
             end
             st <= S_SKIPCHK;
         end
