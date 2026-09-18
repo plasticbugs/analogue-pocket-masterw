@@ -173,17 +173,17 @@ module tc0180vcu #(
     (* ramstyle = "M10K" *) logic [1:0][7:0] sprram [0:SPRN-1];
     logic [15:0] spr_cpu_q, spr_eng_q;
     logic [11:0] spr_eng_addr;
-    wire  [13:0] spr_cpu_addr = addr[14:1] - 14'h2000;   // 0x10000 >> 1
+    wire  [12:0] spr_cpu_addr = 13'(addr[18:1] - 18'h08000); // byte 0x10000
     wire         spr_sel = cs && (addr[18:1] >= 18'h08000) && (addr[18:1] < 18'h09C00);
 
     always_ff @(posedge clk) begin
         if (ld_we && ld_sel == 3'd0) begin
             sprram[ld_addr[12:0]] <= ld_data;
         end else if (spr_sel && we) begin
-            if (ben[1]) sprram[spr_cpu_addr[12:0]][1] <= din[15:8];
-            if (ben[0]) sprram[spr_cpu_addr[12:0]][0] <= din[7:0];
+            if (ben[1]) sprram[spr_cpu_addr][1] <= din[15:8];
+            if (ben[0]) sprram[spr_cpu_addr][0] <= din[7:0];
         end
-        spr_cpu_q <= sprram[spr_cpu_addr[12:0]];
+        spr_cpu_q <= sprram[spr_cpu_addr];
         spr_eng_q <= sprram[{1'b0, spr_eng_addr}];
     end
 
@@ -192,7 +192,7 @@ module tc0180vcu #(
     (* ramstyle = "M10K" *) logic [1:0][7:0] scrram [0:SCRN-1];
     logic [15:0] scr_cpu_q, scr_ren_q;
     logic  [9:0] scr_ren_addr;
-    wire   [9:0] scr_cpu_addr = addr[10:1];
+    wire   [9:0] scr_cpu_addr = 10'(addr[18:1] - 18'h09C00); // byte 0x13800
     wire         scr_sel = cs && (addr[18:1] >= 18'h09C00) && (addr[18:1] < 18'h0A000);
 
     always_ff @(posedge clk) begin
