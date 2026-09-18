@@ -135,9 +135,8 @@ module vcu_sprite #(
     wire [13:0] clip_l = 14'(CX0 - destx);
     wire [13:0] clip_t = 14'(CY0 - desty);
 
-    // y * 320, without a multiplier
-    wire [16:0] y_times_w = {4'd0, cury[9:0], 3'd0} + {6'd0, cury[9:0], 1'd0}
-                            + {2'd0, cury[9:0], 5'd0} + {1'd0, cury[9:0], 6'd0};
+    // y * 320 = (y << 8) + (y << 6), without a multiplier
+    wire [16:0] y_times_w = {cury[8:0], 8'd0} + {2'd0, cury[8:0], 6'd0};
 
     // ------------------------------------------------------------- divider
     // dx = (16 << 16) / dstwidth.  Restoring division, one bit a clock; the

@@ -26,6 +26,10 @@ accumulates exactly as it does on the board.  Full dumps in the run are
 checked against their pixels; lite dumps only carry the replay forward.
 
     render_model.py <rom.rom> <dir-or-state.bin>... [-o artifacts/render]
+                    [-idx artifacts/model]
+
+`-idx` also writes each frame's 320x224 palette indices as little-endian
+16-bit words, which is what the RTL bench (sim/run_video.sh) diffs against.
 
 Writes <frame>.png for the model's output and, when they differ,
 <frame>_mame.png and <frame>_diff.png beside it.
@@ -79,6 +83,11 @@ def main():
     args = sys.argv[1:]
     outdir = 'artifacts/render'
     window = False
+    idxdir = None
+    if '-idx' in args:
+        i = args.index('-idx')
+        idxdir = args[i + 1]
+        del args[i:i + 2]
     if '-o' in args:
         i = args.index('-o')
         outdir = args[i + 1]
@@ -97,6 +106,8 @@ def main():
     gfx = vcu.Gfx(rom[GFX_BASE:GFX_BASE + GFX_LEN])
     paths = expand(args[1:])
     os.makedirs(outdir, exist_ok=True)
+    if idxdir:
+        os.makedirs(idxdir, exist_ok=True)
 
     states = {}
     for p in paths:
@@ -139,6 +150,9 @@ def main():
         # enemies), so the two differ and the pixel dump's palette is the one
         # that reproduces MAME.  Real hardware looks colours up as the beam
         # scans; the difference is one frame of palette animation.
+        if idxdir:
+            with open(f'{idxdir}/{st_p.frame}.idx', 'wb') as fh:
+                fh.write(b''.join(int(v).to_bytes(2, 'little') for v in indices))
         got = vcu.to_rgb(st_p, indices)
         want = vcu.mame_rgb(st_p)
         d, ndiff = diff_image(got, want)

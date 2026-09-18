@@ -131,3 +131,20 @@ result against the model, which is itself pixel-identical to MAME.
   16x16 piece of a multi-tile sprite separately rather than scaling the whole
   sprite, and says so in its own comment. Matching the board here would mean
   diverging from the only reference available.
+
+---
+
+## 5. Measured budgets
+
+`sim/run_video.sh` reports what each frame actually cost, at the real dot
+rate, on the nine frozen states:
+
+| | worst seen | budget |
+|---|---|---|
+| sprite pass | 67,133 clocks | 183,500 (29 lines of vblank) |
+| line render | 3,675 clocks | 6,328 (one line) |
+
+The busiest frame is gameplay (frame 1000), with its zoomed and multi-tile
+sprites. Both have better than 2x headroom, which is why the sprite engine
+can stay simple -- fetch a tile, then blit it -- and the line renderer can
+make five straight passes over the line rather than interleaving them.

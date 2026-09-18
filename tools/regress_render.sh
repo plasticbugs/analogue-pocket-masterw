@@ -36,4 +36,5 @@ if [ ! -f "$states/run.txt" ]; then
     "$root/tools/dump_states.sh" "$states" "$full" "$lite"
 fi
 
-python3 "$root/tools/render_model.py" "$rom" "$states" -replay -o "$root/artifacts/render"
+python3 "$root/tools/render_model.py" "$rom" "$states" -replay \
+    -o "$root/artifacts/render" -idx "$root/artifacts/model"
