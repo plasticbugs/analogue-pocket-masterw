@@ -38,7 +38,14 @@ rates land within 0.05% and 0.07% of the board's. What the extra dot clocks
 buy is a slightly longer horizontal blanking, which nothing observes.
 
 Rotation is left to the Pocket: the core emits the arcade's own 320x224
-landscape frame and `video.json` declares the 270-degree rotation.
+frame in the orientation the chip draws it, and `video.json` asks the scaler
+for **270 degrees**, which is APF's clockwise convention for the quarter turn
+anticlockwise the cabinet's tube needs -- the same turn MAME describes as
+`ROT270`. The Pocket then shows 224 x 320 upright.
+
+The arcade monitor is a 4:3 tube stood on its side, so the 320x224 frame does
+not have square pixels: the core offers the tube's own shape (3:4 once
+rotated) and a square-pixel mode in the menu.
 
 ---
 
