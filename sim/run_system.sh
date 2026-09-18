@@ -14,12 +14,14 @@ case "$rom" in /*) ;; *) rom="$(pwd)/$rom" ;; esac
 [ $# -gt 0 ] && shift
 cd "$here"
 
+. "$here/waivers.sh"
+
 # --no-assert-case: fx68k's ALU has a `unique case` that does not match while
 # the CPU is still in reset, which Verilator would otherwise stop on.
 verilator --cc --exe --build -j "${JOBS:-8}" -O2 \
     -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM \
     -Wno-PINCONNECTEMPTY -Wno-TIMESCALEMOD --no-assert-case \
-    --top-module tb_system_top -Mdir obj_system \
+    "$WAIVERS" --top-module tb_system_top -Mdir obj_system \
     ../rtl/*.sv \
     ../modules/cpu-fx68k/fx68k.sv ../modules/cpu-fx68k/fx68kAlu.sv \
     ../modules/cpu-fx68k/uaddrPla.sv ../modules/cpu-tv80/*.v \

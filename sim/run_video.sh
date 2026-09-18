@@ -16,9 +16,11 @@ case "$rom" in /*) ;; *) rom="$(pwd)/$rom" ;; esac
 [ $# -gt 0 ] && shift
 cd "$here"
 
+. "$here/waivers.sh"
+
 verilator --cc --exe --build -j "${JOBS:-8}" -O2 \
     -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-PINCONNECTEMPTY \
-    --top-module tb_video_top -Mdir obj_video \
+    "$WAIVERS" --top-module tb_video_top -Mdir obj_video \
     ../rtl/tc0180vcu.sv ../rtl/vcu_line.sv ../rtl/vcu_sprite.sv ../rtl/vcu_fb.sv \
     tb_video_top.sv tb_video.cpp > obj_video.log 2>&1 \
     || { tail -30 obj_video.log; exit 1; }
