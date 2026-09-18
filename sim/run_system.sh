@@ -19,7 +19,7 @@ cd "$here"
 verilator --cc --exe --build -j "${JOBS:-8}" -O2 \
     -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM \
     -Wno-PINCONNECTEMPTY -Wno-TIMESCALEMOD --no-assert-case \
-    waivers.vlt --top-module tb_system_top -Mdir obj_system \
+    --top-module tb_system_top -Mdir obj_system \
     ../rtl/*.sv \
     ../modules/cpu-fx68k/fx68k.sv ../modules/cpu-fx68k/fx68kAlu.sv \
     ../modules/cpu-fx68k/uaddrPla.sv ../modules/cpu-tv80/*.v \

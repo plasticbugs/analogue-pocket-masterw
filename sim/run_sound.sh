@@ -20,7 +20,7 @@ cd "$here"
 verilator --cc --exe --build -j "${JOBS:-8}" -O2 \
     -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM \
     -Wno-PINCONNECTEMPTY -Wno-TIMESCALEMOD \
-    waivers.vlt --top-module tb_sound_top -Mdir obj_sound \
+    --top-module tb_sound_top -Mdir obj_sound \
     ../rtl/masterw_sound.sv ../rtl/pc060ha.sv \
     ../modules/cpu-tv80/*.v ../modules/sound-jt03/*.v ../modules/sound-jt49/*.v \
     tb_sound_top.sv tb_sound.cpp > obj_sound.log 2>&1 \

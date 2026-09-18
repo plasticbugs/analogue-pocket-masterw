@@ -21,3 +21,6 @@ tmp/
 # They land in artifacts/audio/ for listening to locally; the comparison
 # report next to them is what gets committed.
 artifacts/audio/*.wav
+
+# sim/lint.sh builds its waiver file to match the installed Verilator
+sim/waivers.vlt
