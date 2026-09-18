@@ -1,0 +1,9 @@
+`verilator_config
+// The Pocket's memory controllers are carried over from cores that already
+// run on hardware, and are kept as they are there.
+lint_off -rule MULTIDRIVEN -file "*sdram_ctrl.sv"
+lint_off -rule BLKSEQ -file "*sdram_ctrl.sv"
+lint_off -rule PROCASSINIT -file "*sdram_ctrl.sv"
+lint_off -rule WIDTHEXPAND -file "*sdram_ctrl.sv"
+lint_off -rule WIDTHTRUNC -file "*sdram_ctrl.sv"
+lint_off -rule UNSIGNED -file "*sdram_ctrl.sv"

@@ -72,24 +72,58 @@ module tb_video_top (
 
     // ------------------------------------------------ graphics ROM (SDRAM)
     logic [31:0] gfx [0:262143];
-    logic        gfx_req, gfx_ack;
-    logic [17:0] gfx_addr;
-    logic [31:0] gfx_q;
-    logic  [3:0] gfx_cnt;
+
+    // the line renderer's port: one word at a time
+    logic        gfxl_req, gfxl_ack;
+    logic [17:0] gfxl_addr;
+    logic [31:0] gfxl_q;
+    logic  [3:0] gfxl_cnt;
 
     always_ff @(posedge clk) begin
         if (gfx_we) gfx[gfx_waddr] <= gfx_wdata;
-        gfx_ack <= 1'b0;
-        if (!gfx_req) begin
-            gfx_cnt <= '0;
-        end else if (!gfx_ack) begin
-            if (gfx_cnt >= gfx_lat) begin
-                gfx_cnt <= '0;
-                gfx_ack <= 1'b1;
-                gfx_q   <= gfx[gfx_addr];
+        gfxl_ack <= 1'b0;
+        if (!gfxl_req) begin
+            gfxl_cnt <= '0;
+        end else if (!gfxl_ack) begin
+            if (gfxl_cnt >= gfx_lat) begin
+                gfxl_cnt <= '0;
+                gfxl_ack <= 1'b1;
+                gfxl_q   <= gfx[gfxl_addr];
             end else begin
-                gfx_cnt <= gfx_cnt + 4'd1;
+                gfxl_cnt <= gfxl_cnt + 4'd1;
             end
+        end
+    end
+
+    // the sprite engine's port: 32 consecutive words, one ack apiece, with
+    // the first costing the latency and the rest arriving back to back the
+    // way an SDRAM burst does
+    logic        gfxs_req, gfxs_ack;
+    logic [17:0] gfxs_addr;
+    logic [31:0] gfxs_q;
+    logic  [3:0] gfxs_cnt;
+    logic  [5:0] gfxs_i;
+    logic        gfxs_run;
+
+    always_ff @(posedge clk) begin
+        gfxs_ack <= 1'b0;
+        if (!gfxs_req) begin
+            gfxs_cnt <= '0;
+            gfxs_i   <= 6'd0;
+            gfxs_run <= 1'b0;
+        end else if (!gfxs_run) begin
+            if (gfxs_cnt >= gfx_lat) begin
+                gfxs_run <= 1'b1;
+                gfxs_ack <= 1'b1;
+                gfxs_q   <= gfx[gfxs_addr];
+                gfxs_i   <= 6'd1;
+            end else begin
+                gfxs_cnt <= gfxs_cnt + 4'd1;
+            end
+        end else if (gfxs_i < 6'd32) begin
+            gfxs_ack <= 1'b1;
+            gfxs_q   <= gfx[gfxs_addr + {12'd0, gfxs_i}];
+            gfxs_i   <= gfxs_i + 6'd1;
         end
     end
 
@@ -101,7 +135,8 @@ module tb_video_top (
         .vram_req(vram_req), .vram_we(vram_we_o), .vram_addr(vram_addr),
         .vram_din(vram_din), .vram_ben(vram_ben),
         .vram_ack(vram_ack), .vram_q(vram_q),
-        .gfx_req(gfx_req), .gfx_addr(gfx_addr), .gfx_ack(gfx_ack), .gfx_q(gfx_q),
+        .gfxl_req(gfxl_req), .gfxl_addr(gfxl_addr), .gfxl_ack(gfxl_ack), .gfxl_q(gfxl_q),
+        .gfxs_req(gfxs_req), .gfxs_addr(gfxs_addr), .gfxs_ack(gfxs_ack), .gfxs_q(gfxs_q),
         .pix_index(pix_index), .pix_de(pix_de),
         .hsync(), .vsync(), .hblank(), .vblank(vblank),
         .inth(), .intl(),

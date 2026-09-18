@@ -54,11 +54,21 @@ module tc0180vcu #(
     input  logic        vram_ack,
     input  logic [15:0] vram_q,
 
-    // graphics ROM: 32-bit words, one per 8-pixel row
-    output logic        gfx_req,
-    output logic [17:0] gfx_addr,
-    input  logic        gfx_ack,
-    input  logic [31:0] gfx_q,
+    // Graphics ROM, on two ports.  The line renderer asks for one word at a
+    // time (the two halves of a 16x16 tile row are eight words apart, so they
+    // are two requests); the sprite engine asks for a whole tile, 32
+    // consecutive words delivered in order.  They are separate ports rather
+    // than one arbitrated port because they want different things from the
+    // SDRAM and they overlap on only one line of the frame.
+    output logic        gfxl_req,
+    output logic [17:0] gfxl_addr,
+    input  logic        gfxl_ack,
+    input  logic [31:0] gfxl_q,
+
+    output logic        gfxs_req,
+    output logic [17:0] gfxs_addr,
+    input  logic        gfxs_ack,
+    input  logic [31:0] gfxs_q,
 
     // video out
     output logic [11:0] pix_index,      // palette index for this dot
@@ -270,18 +280,14 @@ module tc0180vcu #(
         if (spr_busy_d && !spr_busy) spr_cycles <= spr_count;
     end
 
-    logic        sp_gfx_req, ren_gfx_req;
-    logic [17:0] sp_gfx_addr, ren_gfx_addr;
-    logic        sp_gfx_ack, ren_gfx_ack;
-
     vcu_sprite #(
         .VIS_X0(VIS_X0), .VIS_X1(VIS_X1), .VIS_Y0(VIS_Y0), .VIS_Y1(VIS_Y1)
     ) u_sprite (
         .clk(clk), .rst(rst),
         .start(sp_start), .busy(spr_busy),
         .spr_addr(spr_eng_addr), .spr_q(spr_eng_q),
-        .gfx_req(sp_gfx_req), .gfx_addr(sp_gfx_addr),
-        .gfx_ack(sp_gfx_ack), .gfx_q(gfx_q),
+        .gfx_req(gfxs_req), .gfx_addr(gfxs_addr),
+        .gfx_ack(gfxs_ack), .gfx_q(gfxs_q),
         .fb_we(sp_fb_we), .fb_addr(sp_fb_addr), .fb_data(sp_fb_data)
     );
 
@@ -330,8 +336,8 @@ module tc0180vcu #(
         .vram_req(ren_vram_req), .vram_addr(ren_vram_addr),
         .vram_ack(ren_vram_ack), .vram_q(vram_q),
         .scr_addr(scr_ren_addr), .scr_q(scr_ren_q),
-        .gfx_req(ren_gfx_req), .gfx_addr(ren_gfx_addr),
-        .gfx_ack(ren_gfx_ack), .gfx_q(gfx_q),
+        .gfx_req(gfxl_req), .gfx_addr(gfxl_addr),
+        .gfx_ack(gfxl_ack), .gfx_q(gfxl_q),
         .fb_addr(ren_fb_addr), .fb_q(ren_fb_q),
         .lb_we(lb_we), .lb_addr(lb_addr), .lb_data(lb_data)
     );
@@ -351,15 +357,9 @@ module tc0180vcu #(
         end
     end
 
-    // ------------------------------------------------------------ arbiters
-    // the line renderer has a deadline, so it wins; the sprite engine only
-    // overlaps it on the single line where vblank and the first rendered line
-    // meet
-    assign gfx_addr    = ren_gfx_req ? ren_gfx_addr : sp_gfx_addr;
-    assign gfx_req     = ren_gfx_req | sp_gfx_req;
-    assign ren_gfx_ack = gfx_ack & ren_gfx_req;
-    assign sp_gfx_ack  = gfx_ack & ~ren_gfx_req & sp_gfx_req;
-
+    // ------------------------------------------------------------- arbiter
+    // VRAM is one port shared with the 68000; the line renderer has a
+    // deadline, so it wins
     wire cpu_vram_sel = cs && (addr[18:1] < 18'h08000);
     assign vram_req  = ren_vram_req | cpu_vram_sel;
     assign vram_we   = ~ren_vram_req & cpu_vram_sel & we;

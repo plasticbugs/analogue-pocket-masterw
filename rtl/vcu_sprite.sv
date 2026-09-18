@@ -43,7 +43,11 @@ module vcu_sprite #(
     output logic [11:0] spr_addr,
     input  logic [15:0] spr_q,
 
-    // graphics ROM: 32-bit words, one per 8-pixel row, requested in order
+    // Graphics ROM, as a 32-word burst: the whole 16x16 tile is 32
+    // consecutive image words, so the engine names the first and the memory
+    // delivers them in order, one ack apiece.  That is what keeps the tile
+    // fetch inside the vblank budget -- 32 random reads with auto-precharge
+    // would cost five times as much.
     output logic        gfx_req,
     output logic [17:0] gfx_addr,
     input  logic        gfx_ack,
@@ -338,8 +342,7 @@ module vcu_sprite #(
                 cury    <= desty;
                 st      <= S_ROWSET;
             end else begin
-                fetch_i  <= fetch_i + 6'd1;
-                gfx_addr <= tile_base + {12'd0, fetch_i} + 18'd1;
+                fetch_i <= fetch_i + 6'd1;
             end
         end
 

@@ -24,10 +24,17 @@ module masterw_core (
     input  logic        srom_ack,
     input  logic  [7:0] srom_q,
 
-    output logic        gfx_req,        // graphics, 256K 32-bit words
-    output logic [17:0] gfx_addr,
-    input  logic        gfx_ack,
-    input  logic [31:0] gfx_q,
+    // graphics, 256K 32-bit words, on two ports: single words for the line
+    // renderer, whole 32-word tiles for the sprite engine
+    output logic        gfxl_req,
+    output logic [17:0] gfxl_addr,
+    input  logic        gfxl_ack,
+    input  logic [31:0] gfxl_q,
+
+    output logic        gfxs_req,
+    output logic [17:0] gfxs_addr,
+    input  logic        gfxs_ack,
+    input  logic [31:0] gfxs_q,
 
     output logic        vram_req,       // tilemap VRAM, 32K words
     output logic        vram_we,
@@ -107,7 +114,8 @@ module masterw_core (
         .vram_req(vram_req), .vram_we(vram_we), .vram_addr(vram_addr),
         .vram_din(vram_din), .vram_ben(vram_ben),
         .vram_ack(vram_ack), .vram_q(vram_q),
-        .gfx_req(gfx_req), .gfx_addr(gfx_addr), .gfx_ack(gfx_ack), .gfx_q(gfx_q),
+        .gfxl_req(gfxl_req), .gfxl_addr(gfxl_addr), .gfxl_ack(gfxl_ack), .gfxl_q(gfxl_q),
+        .gfxs_req(gfxs_req), .gfxs_addr(gfxs_addr), .gfxs_ack(gfxs_ack), .gfxs_q(gfxs_q),
         .pix_index(pix_index), .pix_de(pix_de),
         .hsync(hsync), .vsync(vsync), .hblank(hblank), .vblank(vblank),
         .inth(inth), .intl(intl),
