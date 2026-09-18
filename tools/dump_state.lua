@@ -49,6 +49,12 @@ end
 
 local frames = 0
 
+-- FLIP=1 turns the Flip Screen DIP on before the game boots, which is the
+-- only way to make it set video control bit 4.
+if os.getenv("FLIP") == "1" then
+  mac.ioport.ports[":DSWA"].fields["Flip Screen"]:set_value(0)   -- ACTIVE_LOW
+end
+
 local function u16(f, v) f:write(string.char(v & 0xff, (v >> 8) & 0xff)) end
 local function u32(f, v)
   f:write(string.char(v & 0xff, (v >> 8) & 0xff, (v >> 16) & 0xff, (v >> 24) & 0xff))

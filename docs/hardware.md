@@ -366,3 +366,30 @@ Only indices up to 0x6FF are reachable: tx 0x000-0x0FF, framebuffer
   engine's cycle budget;
 * the YM2203 FM and SSG output levels against MAME's WAV, including whatever
   the YM3014B and the board's filters do to them.
+
+---
+
+## 9. Measured: what the game never does
+
+Recorded here so nobody re-derives it. All from 3601-frame runs
+(`tools/probe_vcu.lua`, `tools/dump_state.lua`) covering boot, attract, a
+credit and a game.
+
+* **The CPU never touches the sprite framebuffer.** Zero reads, zero writes.
+* **The layout registers are written once at boot** and never change: fg codes
+  at VRAM word 0x0000 with attributes at 0x1000, bg at 0x2000/0x3000, text at
+  0x4000, text banks 0 and 1, and one scroll block per layer.
+* **Video control bit 3 (the alternative sprite priority) is never set**, so
+  the composite is always bg, obj1, fg, obj0, tx.
+* **Bits 6 and 7 are never set**, so the framebuffer always flips every vblank.
+* **Screen flip is effectively unused.** Bit 4 is set only for frames 4-6 of
+  boot, while bit 5 has the video disabled, plus one sub-frame write of 0x30
+  that is gone before the frame is drawn. Turning the Flip Screen DIP on
+  changes nothing: the video-control trace is identical with the DIP on and
+  off, frame for frame, over 3601 frames. The core implements flip anyway,
+  but it cannot be checked against MAME because the game will not ask for it.
+* **Sprite zoom and multi-tile sprites are both used** in normal play -- the
+  player's ship and the tanks are 2x2 and 3x3 groups, and some carry a zoom of
+  0x60. MAME's zoom is not hardware-exact (it scales each 16x16 piece
+  separately); this core reproduces MAME.
+* The sprite table is used up to entry 406 of 408.
