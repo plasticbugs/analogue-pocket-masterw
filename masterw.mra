@@ -1,0 +1,66 @@
+<misterromdescription>
+    <name>Master of Weapon (World)</name>
+    <setname>masterw</setname>
+    <year>1989</year>
+    <manufacturer>Taito</manufacturer>
+    <category>Arcade</category>
+    <rbf>masterw</rbf>
+
+    <!-- The image the core loads, in three regions with no padding between
+         them.  Every 16-bit quantity is big-endian: the first byte of a word
+         is its high byte, which is how the 68000 and the graphics ROMs are
+         wired on the board.
+
+           0x000000  524288  68000 program, even/odd ROMs interleaved into words
+           0x080000   65536  Z80 sound program
+           0x090000 1048576  graphics, four bit planes interleaved into 32-bit
+                             words: one word is one 8-pixel row of a character,
+                             plane 0 first
+           0x190000          total, 1,638,400 bytes
+
+         The graphics interleave is what makes the 4bpp data usable a row at a
+         time.  On the board the two mask ROMs each carry two of the four bit
+         planes (b72-02 planes 0 and 1, b72-01 planes 2 and 3), two bytes per
+         8-pixel row each; taking two bytes from each in turn gives a word
+         holding all four planes of one row, so the core reads eight pixels
+         per access instead of assembling them from four places. -->
+
+    <rom index="0" zip="masterw.zip" md5="fd13534f27262a0ac61f2ca7fc7d20b4">
+        <!-- 68000 program, 512 KB -->
+        <interleave output="16">
+            <part name="b72_06.33" crc="ae848eff" map="10"/>
+            <part name="b72_12.24" crc="7176ce70" map="01"/>
+        </interleave>
+        <interleave output="16">
+            <part name="b72_04.34" crc="141e964c" map="10"/>
+            <part name="b72_03.25" crc="f4523496" map="01"/>
+        </interleave>
+
+        <!-- Z80 sound program, 64 KB: four 16 KB banks -->
+        <part name="b72_07.30" crc="2b1a946f"/>
+
+        <!-- graphics, 1 MB -->
+        <interleave output="32">
+            <part name="b72-02.6" crc="843444eb" map="1200"/>
+            <part name="b72-01.5" crc="a24ac26e" map="0012"/>
+        </interleave>
+    </rom>
+
+    <nvram index="2" size="128"/>
+
+    <!-- Both DIP banks are active low, so a switch "off" is a 1 bit.
+         The core reads these as ports 0 and 1 of the TC0040IOC. -->
+    <switches default="ff,ff" base="0">
+        <dip name="Cabinet"      bits="0"   ids="Upright,Cocktail"/>
+        <dip name="Flip Screen"  bits="1"   ids="On,Off"/>
+        <dip name="Service Mode" bits="2"   ids="On,Off"/>
+        <dip name="Demo Sounds"  bits="3"   ids="Off,On"/>
+        <dip name="Coin A"       bits="4,5" ids="4C/1C,3C/1C,2C/1C,1C/1C"/>
+        <dip name="Coin B"       bits="6,7" ids="1C/6C,1C/4C,1C/3C,1C/2C"/>
+        <dip name="Difficulty"   bits="8,9" ids="Hardest,Hard,Easy,Medium"/>
+        <dip name="Bonus Life"   bits="10,11" ids="None,500k only,500k 1000k 1500k,500k and 1000k"/>
+        <dip name="Lives"        bits="12,13" ids="6,5,4,3"/>
+        <dip name="Unused"       bits="14"  ids="On,Off"/>
+        <dip name="Ship Type"    bits="15"  ids="Hover Cycle,Space Ship"/>
+    </switches>
+</misterromdescription>
