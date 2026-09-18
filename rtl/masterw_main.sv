@@ -229,10 +229,15 @@ module masterw_main (
     assign ioc_sel_wr  = sel_ioc && first && wr &&  cpu_addr[1];
     assign ioc_wdog_rd = sel_ioc && first && !wr &&  cpu_addr[1];
 
+    // A read of the CIU advances its mode, so the byte is captured on the
+    // first clock of the bus cycle -- before the strobe moves the mode on --
+    // and that capture is what the CPU is given.
     assign ciu_din     = cpu_dout[15:8];
     assign ciu_port_wr = sel_ciu && first && wr && !cpu_addr[1];
     assign ciu_comm_wr = sel_ciu && first && wr &&  cpu_addr[1];
     assign ciu_comm_rd = sel_ciu && first && !wr && cpu_addr[1];
+    logic [7:0] ciu_q;
+    always_ff @(posedge clk) if (sel_ciu && first) ciu_q <= ciu_dout;
 
     // ---------------------------------------------- bus cycle bookkeeping
     always_ff @(posedge clk) begin
@@ -251,7 +256,7 @@ module masterw_main (
             if (sel_pal && started)        begin done <= 1'b1; din_r <= pal_cpu_q; end
             if (sel_ioc && started)        begin done <= 1'b1;
                 din_r <= cpu_addr[1] ? 16'h0000 : {ioc_dout, 8'h00}; end
-            if (sel_ciu && started)        begin done <= 1'b1; din_r <= {ciu_dout, 8'h00}; end
+            if (sel_ciu && started)        begin done <= 1'b1; din_r <= {ciu_q, 8'h00}; end
             if (sel_oth && started)        begin done <= 1'b1; din_r <= 16'h0000; end
         end
     end

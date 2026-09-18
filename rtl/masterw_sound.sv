@@ -177,19 +177,33 @@ module masterw_sound (
     end
 
     // ---------------------------------------------------------------- CIU
-    // the reads have side effects, so the strobes are one clock long at the
-    // end of the access
+    // A read of the CIU advances its mode, so the strobe has to come at the
+    // *end* of the access: if it came at the start, the mode would move on
+    // and the chip would be presenting the next nibble by the time the Z80
+    // latched the bus.  The value is captured on the way in so the Z80 sees
+    // one stable byte for the whole cycle either way.
     logic rd_d, wr_d;
+    logic [7:0] ciu_q;
+    logic       ciu_rd_pend, ciu_rd_a0;
     always_ff @(posedge clk) begin
         rd_d <= rd;
         wr_d <= wr;
+        if (ciu_s && rd && !rd_d) begin
+            ciu_q       <= ciu_din;
+            ciu_rd_a0   <= a[0];
+            ciu_rd_pend <= 1'b1;
+        end else if (ciu_rd_pend && !rd) begin
+            ciu_rd_pend <= 1'b0;
+        end
+        if (rst) ciu_rd_pend <= 1'b0;
     end
-    wire rd_edge = rd & ~rd_d;
     wire wr_edge = wr & ~wr_d;
 
     assign ciu_port_wr = ciu_s && !a[0] && wr_edge;
     assign ciu_comm_wr = ciu_s &&  a[0] && wr_edge;
-    assign ciu_comm_rd = ciu_s &&  a[0] && rd_edge;
+    // the mreq strobe drops with rd, so the end of the access is found from
+    // the latched state rather than from the decode
+    assign ciu_comm_rd = ciu_rd_pend && !rd && ciu_rd_a0;
     assign ciu_dout    = z80_dout;
 
     // ------------------------------------------------------------ read mux
@@ -197,7 +211,7 @@ module masterw_sound (
         if      (rom_s) di = rom_data;
         else if (ram_s) di = ram_q;
         else if (ym_s)  di = ym_dout;
-        else if (ciu_s) di = ciu_din;
+        else if (ciu_s) di = ciu_rd_pend ? ciu_q : ciu_din;
         else            di = 8'hff;
     end
 endmodule
