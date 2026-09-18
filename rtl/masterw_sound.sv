@@ -109,7 +109,22 @@ module masterw_sound (
         ctag_q   <= crom_tag[cidx];
         cvalid_q <= crom_valid[cidx];
     end
-    wire cache_hit = cvalid_q && (ctag_q == ctag);
+    // swept clear after reset rather than cleared in a loop; see the same
+    // note in masterw_main.sv
+    logic [8:0] inval_i;
+    logic       inval;
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            inval   <= 1'b1;
+            inval_i <= '0;
+        end else if (inval) begin
+            crom_valid[inval_i] <= 1'b0;
+            inval_i <= inval_i + 9'd1;
+            if (&inval_i) inval <= 1'b0;
+        end
+    end
+
+    wire cache_hit = !inval && cvalid_q && (ctag_q == ctag);
 
     // R_DONE holds the answer until the Z80 drops its read.  Without it the
     // state machine re-enters the lookup while the read is still asserted,
@@ -122,7 +137,6 @@ module masterw_sound (
         if (rst) begin
             rstate  <= R_IDLE;
             rom_req <= 1'b0;
-            for (int i = 0; i < CLINES; i++) crom_valid[i] <= 1'b0;
         end else case (rstate)
             R_IDLE: if (rom_s && rd) rstate <= R_LOOK;
             R_LOOK: begin
@@ -138,9 +152,9 @@ module masterw_sound (
             R_FETCH: if (rom_ack) begin
                 rom_req  <= 1'b0;
                 rom_data <= rom_q;
-                crom_data[cidx]  <= rom_q;
-                crom_tag[cidx]   <= ctag;
-                crom_valid[cidx] <= 1'b1;
+                crom_data[cidx] <= rom_q;
+                crom_tag[cidx]  <= ctag;
+                if (!inval) crom_valid[cidx] <= 1'b1;
                 rstate   <= R_DONE;
             end
             R_DONE: if (!(rom_s && rd)) rstate <= R_IDLE;

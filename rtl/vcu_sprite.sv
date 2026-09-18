@@ -142,6 +142,7 @@ module vcu_sprite #(
     wire  [3:0] src_col = cursrcx[19:16];
     wire  [3:0] src_row = srcy[19:16];
     wire  [3:0] pen     = cur_row[60 - 4*src_col +: 4];
+    wire [12:0] fb_col  = curx - CX0;   // always in range once clipped
 
     // clipping distances, always non-negative where they are used
     wire [13:0] clip_l = 14'(CX0 - destx);
@@ -395,7 +396,7 @@ module vcu_sprite #(
         S_PIX: begin
             if (pen != 4'd0) begin
                 fb_we   <= 1'b1;
-                fb_addr <= row_base + 17'(curx - CX0);
+                fb_addr <= row_base + {4'd0, fb_col};
                 fb_data <= color + {6'd0, pen};
             end
             cursrcx <= cursrcx + dx;

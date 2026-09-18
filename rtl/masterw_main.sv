@@ -173,7 +173,26 @@ module masterw_main (
         ctag_q   <= crom_tag[cidx];
         cvalid_q <= crom_valid[cidx];
     end
-    wire cache_hit = cvalid_q && (ctag_q == ctag);
+    // The valid bits are swept clear after reset rather than cleared in a
+    // loop: a for-loop reset is not portable across Verilator versions, and
+    // resetting them as one packed vector would cost a flop per line.  Until
+    // the sweep is done every read is a miss, served straight from the SDRAM,
+    // which is correct and takes 2048 clocks -- 21 microseconds, before the
+    // 68000 has gone anywhere.
+    logic [10:0] inval_i;
+    logic        inval;
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            inval   <= 1'b1;
+            inval_i <= '0;
+        end else if (inval) begin
+            crom_valid[inval_i] <= 1'b0;
+            inval_i <= inval_i + 11'd1;
+            if (&inval_i) inval <= 1'b0;
+        end
+    end
+
+    wire cache_hit = !inval && cvalid_q && (ctag_q == ctag);
 
     typedef enum logic [1:0] { R_IDLE, R_LOOK, R_FETCH, R_DONE } rstate_t;
     rstate_t rstate;
@@ -185,7 +204,6 @@ module masterw_main (
             rstate   <= R_IDLE;
             rom_req  <= 1'b0;
             rom_done <= 1'b0;
-            for (int i = 0; i < CLINES; i++) crom_valid[i] <= 1'b0;
         end else begin
             rom_done <= 1'b0;
             case (rstate)
@@ -205,9 +223,9 @@ module masterw_main (
                     rom_req  <= 1'b0;
                     rom_data <= rom_q;
                     rom_done <= 1'b1;
-                    crom_data[cidx]  <= rom_q;
-                    crom_tag[cidx]   <= ctag;
-                    crom_valid[cidx] <= 1'b1;
+                    crom_data[cidx] <= rom_q;
+                    crom_tag[cidx]  <= ctag;
+                    if (!inval) crom_valid[cidx] <= 1'b1;
                     rstate   <= R_DONE;
                 end
                 R_DONE: if (!bus) rstate <= R_IDLE;
