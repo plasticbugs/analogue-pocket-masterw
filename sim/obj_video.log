@@ -6,5 +6,5 @@ c++ -Os  -I.  -MMD -I/opt/homebrew/Cellar/verilator/5.050/share/verilator/includ
 c++  -Wl,-U,__Z15vl_time_stamp64v,-U,__Z13sc_time_stampv,-U,_vlog_startup_routines   tb_video.o verilated.o verilated_threads.o Vtb_video_top__ALL.a    -pthread -lpthread   -o Vtb_video_top
 rm Vtb_video_top__ALL.verilator_deplist.tmp
 - V e r i l a t i o n   R e p o r t: Verilator 5.050 2026-07-01 rev vUNKNOWN-built20260701
-- Verilator: Built from 0.239 MB sources in 6 modules, into 0.255 MB in 5 C++ files needing 0.001 MB
-- Verilator: Walltime 3.812 s (elab=0.006, cvt=0.035, bld=3.754); cpu 0.059 s on 8 threads; allocated 15.859 MB
+- Verilator: Built from 0.239 MB sources in 6 modules, into 0.256 MB in 5 C++ files needing 0.001 MB
+- Verilator: Walltime 2.341 s (elab=0.005, cvt=0.024, bld=2.298); cpu 0.043 s on 8 threads; allocated 15.438 MB

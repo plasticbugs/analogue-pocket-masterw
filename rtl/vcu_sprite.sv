@@ -102,9 +102,13 @@ module vcu_sprite #(
 
     // blit
     logic signed [12:0] destx, desty, destendx, destendy, curx, cury;
-    logic signed [31:0] srcx, srcy, cursrcx, dx, dy;
-    logic [13:0] clipx_r, clipy_r;
-    logic signed [31:0] flipx_t, flipy_t;
+    // 16.16 source positions and steps.  The step is at most 0x100000 (a
+    // one-pixel-wide sprite) and a position at most a tile's worth of steps,
+    // so 24 bits carries both with room; the full 32 made the clip multiply
+    // wide enough to need two DSPs in series and it became the critical path.
+    logic signed [23:0] srcx, srcy, cursrcx, dx, dy;
+    logic [11:0] clipx_r, clipy_r;
+    logic signed [23:0] flipx_t, flipy_t;
     logic  [5:0] fetch_i;
     logic [17:0] tile_base;
     logic [16:0] row_base;
@@ -299,14 +303,14 @@ module vcu_sprite #(
 
         S_DIVX:  st <= S_DIVXW;
         S_DIVXW: if (!div_busy) begin
-            dx      <= $signed({11'd0, div_quo});
+            dx      <= $signed({3'd0, div_quo});
             div_den <= zy;
             div_go  <= 1'b1;
             st      <= S_DIVY;
         end
         S_DIVY:  st <= S_DIVYW;
         S_DIVYW: if (!div_busy) begin
-            dy <= $signed({11'd0, div_quo});
+            dy <= $signed({3'd0, div_quo});
             st <= S_CLIPX;
         end
 
@@ -316,33 +320,33 @@ module vcu_sprite #(
         // was pipelined.  Four clocks a sprite is nothing against the 183,500
         // in vblank.
         S_CLIPX: begin
-            clipx_r <= (destx < CX0) ? clip_l : 14'd0;
+            clipx_r <= (destx < CX0) ? clip_l[11:0] : 12'd0;
             if (destx < CX0) destx <= CX0;
             if (destendx > CX1) destendx <= CX1;
             st <= S_CLIPY;
         end
 
         S_CLIPY: begin
-            clipy_r <= (desty < CY0) ? clip_t : 14'd0;
+            clipy_r <= (desty < CY0) ? clip_t[11:0] : 12'd0;
             if (desty < CY0) desty <= CY0;
             if (destendy > CY1) destendy <= CY1;
             st <= S_MULX;
         end
 
         S_MULX: begin
-            srcx <= $signed({18'd0, clipx_r}) * dx;
+            srcx <= $signed({12'd0, clipx_r}) * dx;
             st   <= S_MULY;
         end
 
         S_MULY: begin
-            srcy <= $signed({18'd0, clipy_r}) * dy;
+            srcy <= $signed({12'd0, clipy_r}) * dy;
             st   <= S_FLIPM;
         end
 
         // the mirror terms, MAME's (dstwidth - 1) * dx and its Y twin
         S_FLIPM: begin
-            flipx_t <= ($signed({{18{zx[13]}}, zx}) - 32'sd1) * dx;
-            flipy_t <= ($signed({{18{zy[13]}}, zy}) - 32'sd1) * dy;
+            flipx_t <= ($signed({{10{zx[13]}}, zx}) - 24'sd1) * dx;
+            flipy_t <= ($signed({{10{zy[13]}}, zy}) - 24'sd1) * dy;
             st      <= S_FLIP;
         end
 
