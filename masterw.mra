@@ -48,19 +48,20 @@
 
     <nvram index="2" size="128"/>
 
-    <!-- Both DIP banks are active low, so a switch "off" is a 1 bit.
-         The core reads these as ports 0 and 1 of the TC0040IOC. -->
-    <switches default="ff,ff" base="0">
-        <dip name="Cabinet"      bits="0"   ids="Upright,Cocktail"/>
-        <dip name="Flip Screen"  bits="1"   ids="On,Off"/>
-        <dip name="Service Mode" bits="2"   ids="On,Off"/>
-        <dip name="Demo Sounds"  bits="3"   ids="Off,On"/>
-        <dip name="Coin A"       bits="4,5" ids="4C/1C,3C/1C,2C/1C,1C/1C"/>
-        <dip name="Coin B"       bits="6,7" ids="1C/6C,1C/4C,1C/3C,1C/2C"/>
-        <dip name="Difficulty"   bits="8,9" ids="Hardest,Hard,Easy,Medium"/>
+    <!-- Both DIP banks are active low, so a switch "off" is a 1 bit; the
+         default above is the board's factory setting.  The core's own menu
+         works the same way (pkg/pocket/.../interact.json). -->
+    <switches default="fe,ff" base="0">
+        <dip name="Cabinet"      bits="0"     ids="Upright,Cocktail"/>
+        <dip name="Flip Screen"  bits="1"     ids="On,Off"/>
+        <dip name="Service Mode" bits="2"     ids="On,Off"/>
+        <dip name="Demo Sounds"  bits="3"     ids="Off,On"/>
+        <dip name="Coin A"       bits="4,5"   ids="4C/1C,3C/1C,2C/1C,1C/1C"/>
+        <dip name="Coin B"       bits="6,7"   ids="1C/6C,1C/4C,1C/3C,1C/2C"/>
+        <dip name="Difficulty"   bits="8,9"   ids="Hardest,Hard,Easy,Medium"/>
         <dip name="Bonus Life"   bits="10,11" ids="None,500k only,500k 1000k 1500k,500k and 1000k"/>
         <dip name="Lives"        bits="12,13" ids="6,5,4,3"/>
-        <dip name="Unused"       bits="14"  ids="On,Off"/>
-        <dip name="Ship Type"    bits="15"  ids="Hover Cycle,Space Ship"/>
+        <dip name="Unused"       bits="14"    ids="On,Off"/>
+        <dip name="Ship Type"    bits="15"    ids="Hover Cycle,Space Ship"/>
     </switches>
 </misterromdescription>

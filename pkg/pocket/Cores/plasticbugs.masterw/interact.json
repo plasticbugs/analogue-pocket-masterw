@@ -1,0 +1,352 @@
+{
+  "interact": {
+    "magic": "APF_VER_1",
+    "variables": [
+      {
+        "name": "Reset Core",
+        "id": 0,
+        "type": "action",
+        "enabled": true,
+        "address": "0xF0000000",
+        "value": 1
+      },
+      {
+        "name": "Screen Shape",
+        "id": 60,
+        "type": "list",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF2000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFFF9",
+        "options": [
+          {
+            "name": "Arcade 3:4",
+            "value": "0x00000000"
+          },
+          {
+            "name": "Square pixels",
+            "value": "0x00000002"
+          }
+        ]
+      },
+      {
+        "name": "Scanlines",
+        "id": 61,
+        "type": "list",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF3000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFFFC",
+        "options": [
+          {
+            "name": "Off",
+            "value": "0x00000000"
+          },
+          {
+            "name": "25%",
+            "value": "0x00000001"
+          },
+          {
+            "name": "50%",
+            "value": "0x00000002"
+          },
+          {
+            "name": "75%",
+            "value": "0x00000003"
+          }
+        ]
+      },
+      {
+        "name": "Shadow Mask",
+        "id": 62,
+        "type": "list",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF3000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFF8F",
+        "options": [
+          {
+            "name": "Off",
+            "value": "0x00000000"
+          },
+          {
+            "name": "1x",
+            "value": "0x00000010"
+          },
+          {
+            "name": "2x",
+            "value": "0x00000020"
+          },
+          {
+            "name": "3x",
+            "value": "0x00000030"
+          }
+        ]
+      },
+      {
+        "name": "Cabinet: Cocktail",
+        "id": 10,
+        "type": "check",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF1000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFFFE",
+        "value": "0x00000001"
+      },
+      {
+        "name": "Flip Screen",
+        "id": 11,
+        "type": "check",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF1000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFFFD",
+        "value": "0x00000002"
+      },
+      {
+        "name": "Service Mode",
+        "id": 12,
+        "type": "check",
+        "enabled": true,
+        "persist": false,
+        "address": "0xF1000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFFFB",
+        "value": "0x00000004"
+      },
+      {
+        "name": "Demo Sounds Off",
+        "id": 13,
+        "type": "check",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF1000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFFF7",
+        "value": "0x00000008"
+      },
+      {
+        "name": "Coin A",
+        "id": 14,
+        "type": "list",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF1000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFFCF",
+        "options": [
+          {
+            "name": "1 Coin/1 Credit",
+            "value": "0x00000000"
+          },
+          {
+            "name": "2 Coins/1 Credit",
+            "value": "0x00000010"
+          },
+          {
+            "name": "3 Coins/1 Credit",
+            "value": "0x00000020"
+          },
+          {
+            "name": "4 Coins/1 Credit",
+            "value": "0x00000030"
+          }
+        ]
+      },
+      {
+        "name": "Coin B",
+        "id": 15,
+        "type": "list",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF1000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFF3F",
+        "options": [
+          {
+            "name": "1 Coin/2 Credits",
+            "value": "0x00000000"
+          },
+          {
+            "name": "1 Coin/3 Credits",
+            "value": "0x00000040"
+          },
+          {
+            "name": "1 Coin/4 Credits",
+            "value": "0x00000080"
+          },
+          {
+            "name": "1 Coin/6 Credits",
+            "value": "0x000000C0"
+          }
+        ]
+      },
+      {
+        "name": "Difficulty",
+        "id": 16,
+        "type": "list",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF1000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFCFF",
+        "options": [
+          {
+            "name": "Medium",
+            "value": "0x00000000"
+          },
+          {
+            "name": "Easy",
+            "value": "0x00000100"
+          },
+          {
+            "name": "Hard",
+            "value": "0x00000200"
+          },
+          {
+            "name": "Hardest",
+            "value": "0x00000300"
+          }
+        ]
+      },
+      {
+        "name": "Bonus Life",
+        "id": 17,
+        "type": "list",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF1000000",
+        "defaultval": 0,
+        "mask": "0xFFFFF3FF",
+        "options": [
+          {
+            "name": "500k and 1000k",
+            "value": "0x00000000"
+          },
+          {
+            "name": "500k, 1000k and 1500k",
+            "value": "0x00000400"
+          },
+          {
+            "name": "500k only",
+            "value": "0x00000800"
+          },
+          {
+            "name": "None",
+            "value": "0x00000C00"
+          }
+        ]
+      },
+      {
+        "name": "Lives",
+        "id": 18,
+        "type": "list",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF1000000",
+        "defaultval": 0,
+        "mask": "0xFFFFCFFF",
+        "options": [
+          {
+            "name": "3",
+            "value": "0x00000000"
+          },
+          {
+            "name": "4",
+            "value": "0x00001000"
+          },
+          {
+            "name": "5",
+            "value": "0x00002000"
+          },
+          {
+            "name": "6",
+            "value": "0x00003000"
+          }
+        ]
+      },
+      {
+        "name": "Ship Type: Hover Cycle",
+        "id": 19,
+        "type": "check",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF1000000",
+        "defaultval": 0,
+        "mask": "0xFFFF7FFF",
+        "value": "0x00008000"
+      },
+      {
+        "name": "Service Switch",
+        "id": 40,
+        "type": "check",
+        "enabled": true,
+        "persist": false,
+        "address": "0xF2000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFEFF",
+        "value": "0x00000100"
+      },
+      {
+        "name": "Diagnostic Overlay",
+        "id": 41,
+        "type": "check",
+        "enabled": true,
+        "persist": false,
+        "address": "0xF2000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFFF7",
+        "value": "0x00000008"
+      },
+      {
+        "name": "SDRAM: alternate read capture",
+        "id": 42,
+        "type": "check",
+        "enabled": true,
+        "persist": false,
+        "address": "0xF2000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFFEF",
+        "value": "0x00000010"
+      },
+      {
+        "name": "SDRAM: slow bursts",
+        "id": 43,
+        "type": "check",
+        "enabled": true,
+        "persist": false,
+        "address": "0xF2000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFFDF",
+        "value": "0x00000020"
+      },
+      {
+        "name": "SRAM: late read capture",
+        "id": 44,
+        "type": "check",
+        "enabled": true,
+        "persist": false,
+        "address": "0xF2000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFF7F",
+        "value": "0x00000080"
+      },
+      {
+        "name": "SRAM: stretched writes",
+        "id": 45,
+        "type": "check",
+        "enabled": true,
+        "persist": false,
+        "address": "0xF2000000",
+        "defaultval": 0,
+        "mask": "0xFFFF7FFF",
+        "value": "0x00008000"
+      }
+    ]
+  }
+}

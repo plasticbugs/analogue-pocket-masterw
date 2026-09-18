@@ -863,10 +863,15 @@ module core_top
     wire [7:0] mw_in2 = ~{p2_start, p1_start, 2'b00,
                           p2_select, p1_select, svc, 1'b0};
 
-    //! The two DIP banks, from the Interact menu, active low like the board's
-    //! switches (masterw.mra lists them in the same order).
-    wire [7:0] mw_dswa = dip_sw0;
-    wire [7:0] mw_dswb = dip_sw1;
+    //! The two DIP banks.  The menu word starts at zero and is XORed with the
+    //! board's factory setting, so nothing set is the board as it shipped and
+    //! each menu value is only the difference from it -- which also means a
+    //! switch the menu does not expose keeps its factory value instead of
+    //! reading as pressed before the Pocket has written the word.
+    //!   DSWA 0xFE: upright, flip off, service off, demo sounds on, 1C/1C, 1C/2C
+    //!   DSWB 0xFF: medium, bonus at 500k and 1000k, 3 lives, space ship
+    wire [7:0] mw_dswa = 8'hFE ^ dip_sw0;
+    wire [7:0] mw_dswb = 8'hFF ^ dip_sw1;
 
     //! Diagnostics from the modifier word, as the Gaiapolis core has them:
     //! bit 4 SDRAM read capture alternate, 5 slow bursts, 7 slow SRAM reads,
