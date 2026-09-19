@@ -269,61 +269,6 @@
         "defaultval": 0,
         "mask": "0xFFFFFEFF",
         "value": "0x00000100"
-      },
-      {
-        "name": "Diagnostic Overlay",
-        "id": 41,
-        "type": "check",
-        "enabled": true,
-        "persist": false,
-        "address": "0xF2000000",
-        "defaultval": 0,
-        "mask": "0xFFFFFFF7",
-        "value": "0x00000008"
-      },
-      {
-        "name": "SDRAM: alternate read capture",
-        "id": 42,
-        "type": "check",
-        "enabled": true,
-        "persist": false,
-        "address": "0xF2000000",
-        "defaultval": 0,
-        "mask": "0xFFFFFFEF",
-        "value": "0x00000010"
-      },
-      {
-        "name": "SDRAM: slow bursts",
-        "id": 43,
-        "type": "check",
-        "enabled": true,
-        "persist": false,
-        "address": "0xF2000000",
-        "defaultval": 0,
-        "mask": "0xFFFFFFDF",
-        "value": "0x00000020"
-      },
-      {
-        "name": "SRAM: late read capture",
-        "id": 44,
-        "type": "check",
-        "enabled": true,
-        "persist": false,
-        "address": "0xF2000000",
-        "defaultval": 0,
-        "mask": "0xFFFFFF7F",
-        "value": "0x00000080"
-      },
-      {
-        "name": "SRAM: stretched writes",
-        "id": 45,
-        "type": "check",
-        "enabled": true,
-        "persist": false,
-        "address": "0xF2000000",
-        "defaultval": 0,
-        "mask": "0xFFFF7FFF",
-        "value": "0x00008000"
       }
     ]
   }
