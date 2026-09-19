@@ -1,7 +1,11 @@
-# MAME working state and shadow romset (contains symlinks to the user's ROMs)
+# MAME working state, shadow romset (symlinks to the user's ROMs) and its
+# snapshot output
 .mame/
-# The user's romset — never commit ROMs
-masterw/
+/snap/
+# The user's romset — never commit ROMs.  Anchored: unanchored, this also
+# matched pkg/pocket/Assets/masterw/, and silently kept the package's own
+# README out of the repo (METHODOLOGY section 5.6).
+/masterw/
 *.zip
 *.rom
 *.bin

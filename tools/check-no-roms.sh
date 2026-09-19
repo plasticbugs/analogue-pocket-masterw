@@ -39,9 +39,18 @@ git ls-files | while IFS= read -r f; do
     case " $ALLOW_LARGE " in *" $f "*) continue ;; esac
     case " $ALLOW_PACKAGE " in *" $f "*) ;; *)
         case "$f" in
-            *.rom|*.zip|*.7z|*.bin|*.nv|masterw/*|*/masterw/*)
+            *.rom|*.zip|*.7z|*.bin|*.nv)
                 printf '  REFUSE  %s\n            ROM or romset file\n' "$f" >>"$report" ;;
         esac ;;
+    esac
+    # Anything under a directory named after the romset -- except the package's
+    # own Assets/<setname>/, which is where the ROM is meant to be PUT by the
+    # user and legitimately carries a README.  Files there are still judged by
+    # extension above, so a real ROM in it is still refused.
+    case "$f" in
+        pkg/pocket/Assets/*) ;;
+        masterw/*|*/masterw/*)
+            printf '  REFUSE  %s\n            ROM or romset file\n' "$f" >>"$report" ;;
     esac
     sz=$(wc -c < "$f" 2>/dev/null || echo 0)
     if [ "$sz" -gt 1048576 ]; then
