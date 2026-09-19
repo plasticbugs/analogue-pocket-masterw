@@ -351,15 +351,28 @@ module tc0180vcu #(
 
     // ---------------------------------------------------------- line buffer
     // two buffers, chosen by the parity of the line they hold
-    logic [11:0] linebuf [0:1][0:WIDTH-1];
+    // Two line buffers, one being drawn while the other is on screen, held as
+    // the two halves of one RAM: {buffer, x}, 512 entries a half so the
+    // address is plain concatenation.
+    //
+    // This was `linebuf [0:1][0:WIDTH-1]`, a 2 x 320 array, and every bench
+    // drew it correctly.  On the Pocket every other raster line showed, past
+    // about x = 192, a ghost of its own first 128 pixels -- alternate lines
+    // being one of the two buffers, and 192 being 512 - 320: the distance
+    // between striding the second buffer by the array's 320 and by the 512
+    // its nine-bit index could reach.  A simulator indexes a two-dimensional
+    // array exactly as written; a synthesiser has to flatten it, and there is
+    // no reason to make it choose.  One dimension, a power of two deep.
+    // It is also 7,000 flops and a 640-way multiplexer fewer.
+    (* ramstyle = "M10K" *) logic [11:0] linebuf [0:1023];
     logic        wr_buf;
     // the readout is registered, so the data-enable is too: both come out one
     // dot after the counters that produced them
     always_ff @(posedge clk) begin
         if (ren_start) wr_buf <= ren_line[0];
-        if (lb_we) linebuf[wr_buf][lb_addr] <= lb_data;
+        if (lb_we) linebuf[{wr_buf, lb_addr}] <= lb_data;
         if (pix_ce) begin
-            pix_index <= linebuf[vcnt[0]][hpos[8:0]];
+            pix_index <= linebuf[{vcnt[0], hpos[8:0]}];
             pix_de    <= visible;
         end
     end

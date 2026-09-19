@@ -104,6 +104,8 @@ set_multicycle_path -hold  3 -from $YM -to $YM
 # ports of that RAM merge into the one instance and the CPU's port is not on
 # the dot's fourteen-clock cadence.  The read closes on a single clock as it
 # stands, which is the stricter claim of the two.
-set PIX [get_registers {*|tc0180vcu:*|pix_index[*] *|tc0180vcu:*|pix_de}]
-set_multicycle_path -setup 4 -to $PIX
-set_multicycle_path -hold  3 -to $PIX
+# The line-buffer readout had a multicycle here as well, when the buffers
+# were 7,000 flops behind a 640-way multiplexer that took 16.8 ns to settle.
+# They are one block RAM now (rtl/tc0180vcu.sv), its output register is the
+# RAM's own, and a RAM read closes on a single clock -- so, like the palette
+# read above, it is left to be timed as what it is.
