@@ -31,7 +31,7 @@ module tb_video_top (
     // memory latency, so the bench can ask what happens when the real
     // memories are slower than a clock
     input  logic  [3:0] vram_lat,
-    input  logic  [3:0] gfx_lat,
+    input  logic  [5:0] gfx_lat,
 
     // ---- observation ----
     output logic [11:0] pix_index,
@@ -77,7 +77,7 @@ module tb_video_top (
     logic        gfxl_req, gfxl_ack;
     logic [17:0] gfxl_addr;
     logic [31:0] gfxl_q;
-    logic  [3:0] gfxl_cnt;
+    logic  [5:0] gfxl_cnt;
 
     always_ff @(posedge clk) begin
         if (gfx_we) gfx[gfx_waddr] <= gfx_wdata;
@@ -90,7 +90,7 @@ module tb_video_top (
                 gfxl_ack <= 1'b1;
                 gfxl_q   <= gfx[gfxl_addr];
             end else begin
-                gfxl_cnt <= gfxl_cnt + 4'd1;
+                gfxl_cnt <= gfxl_cnt + 6'd1;
             end
         end
     end
@@ -101,7 +101,7 @@ module tb_video_top (
     logic        gfxs_req, gfxs_ack;
     logic [17:0] gfxs_addr;
     logic [31:0] gfxs_q;
-    logic  [3:0] gfxs_cnt;
+    logic  [5:0] gfxs_cnt;
     logic  [5:0] gfxs_i;
     logic        gfxs_run;
 
@@ -118,7 +118,7 @@ module tb_video_top (
                 gfxs_q   <= gfx[gfxs_addr];
                 gfxs_i   <= 6'd1;
             end else begin
-                gfxs_cnt <= gfxs_cnt + 4'd1;
+                gfxs_cnt <= gfxs_cnt + 6'd1;
             end
         end else if (gfxs_i < 6'd32) begin
             gfxs_ack <= 1'b1;

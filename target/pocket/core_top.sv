@@ -991,7 +991,10 @@ module core_top
     wire pix_sync = vt_s ^ vt_d;
 
     masterw_core mw (
-        .clk(clk_sys), .rst(mw_reset | pause_core), .pix_sync(pix_sync),
+        //! pause_core is the Pocket's menu being open.  It used to be ORed into
+        //! reset here, which held the whole board in reset while the menu was
+        //! up and booted it from scratch when the menu closed.
+        .clk(clk_sys), .rst(mw_reset), .pause(pause_core), .pix_sync(pix_sync),
         .mrom_req(mrom_req), .mrom_addr(mrom_addr), .mrom_ack(mrom_ack), .mrom_q(mrom_q),
         .srom_req(srom_req), .srom_addr(srom_addr), .srom_ack(srom_ack), .srom_q(srom_q),
         .gfxl_req(gfxl_req), .gfxl_addr(gfxl_addr), .gfxl_ack(gfxl_ack), .gfxl_q(gfxl_q),
@@ -1056,7 +1059,7 @@ module core_top
     //! vector 0C from 006A4A -- on the download fault that blacked out the
     //! first hardware run.
     logic        flt_rst;
-    always_ff @(posedge clk_sys) flt_rst <= mw_reset | pause_core;
+    always_ff @(posedge clk_sys) flt_rst <= mw_reset;
     wire         flt_hit;
     wire   [7:0] flt_vec, flt_n;
     wire  [23:0] flt_pc0, flt_pc1, flt_io;
@@ -1064,6 +1067,16 @@ module core_top
         .clk(clk_sys), .rst(flt_rst), .addr(mw_dbg_addr), .bus(mw_dbg_bus),
         .hit(flt_hit), .vec(flt_vec), .pc0(flt_pc0), .pc1(flt_pc1), .io(flt_io), .faults(flt_n)
     );
+
+    logic [15:0] ren_max;
+    logic [17:0] spr_max;
+    always_ff @(posedge clk_sys) begin
+        if (flt_rst) begin ren_max <= '0; spr_max <= '0; end
+        else begin
+            if (mw_ren_cycles > ren_max) ren_max <= mw_ren_cycles;
+            if (mw_spr_cycles > spr_max) spr_max <= mw_spr_cycles;
+        end
+    end
 
     wire [127:0] ovl_status = {
         // row 0: the marker first, so a reading can check its own alignment
@@ -1077,8 +1090,10 @@ module core_top
         // row 2: how many such fetches since (saturating), then the last
         // address outside ROM and main RAM before the first
         flt_n, flt_io,
-        // row 3: what came back out of tilemap VRAM.  A55A 5AA5 is a pass.
-        sram_rd0, sram_rd1
+        // row 3: the slowest line render since reset, in clocks, of a budget
+        // of 6,328 (0x18B8).  All ones means a line overran and went on
+        // screen unfinished.  Then the sprite pass, in units of 4 clocks.
+        ren_max, spr_max[17:2]
     };
 
     wire [7:0] ovl_r, ovl_g, ovl_b;

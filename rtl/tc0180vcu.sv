@@ -310,6 +310,13 @@ module tc0180vcu #(
         if (ren_busy_d && !ren_busy && ren_count > ren_cycles) ren_cycles <= ren_count;
         if (line_start) begin
             ren_count <= '0;
+            // A line still being built when the next begins has overrun: it
+            // goes on screen unfinished, stale beyond the point the renderer
+            // reached, and the count that would have said so is thrown away
+            // with it -- which is how the first hardware picture came out
+            // striped while the panel read a comfortable 321.  Say so
+            // instead: all ones, for the rest of the frame.
+            if (ren_busy) ren_cycles <= 16'hFFFF;
             if (vcnt >= 9'(VIS_Y0 - 2) && vcnt <= 9'(VIS_Y1 - 2)) begin
                 ren_line  <= vcnt + 9'd2;
                 ren_start <= 1'b1;

@@ -22,6 +22,7 @@ module clk_enables (
     // whatever phase the reset left it in, and the pixel handed to the video
     // clock could be sampled while it changes (METHODOLOGY section 5.4).
     input  logic pix_sync,
+    input  logic pause,     // hold both CPUs and the sound chip; see below
     output logic cen_phi1,
     output logic cen_phi2,
     output logic cen_z80,
@@ -36,7 +37,7 @@ module clk_enables (
             div  <= 5'd0;
             dpix <= 4'd0;
         end else begin
-            div  <= div + 5'd1;
+            if (!pause) div <= div + 5'd1;
             if (pix_sync)         dpix <= 4'd0;
             else if (dpix == 4'd13) dpix <= 4'd0;
             else                  dpix <= dpix + 4'd1;
@@ -44,10 +45,18 @@ module clk_enables (
     end
 
     // 96 / 8 = 12 MHz, the two phases half a CPU clock apart
-    assign cen_phi1 = (div[2:0] == 3'd0);
-    assign cen_phi2 = (div[2:0] == 3'd4);
-    assign cen_z80  = (div[3:0] == 4'd2);       // 96 / 16 = 6 MHz
-    assign cen_ym   = (div      == 5'd6);       // 96 / 32 = 3 MHz
+    // Pausing freezes the divider and masks the enables with the same signal,
+    // so every count still produces exactly one pulse: nothing is skipped and
+    // nothing fires twice, and fx68k's two phases come back in the order they
+    // stopped.  The dot divider is separate and keeps running, which is what
+    // leaves the picture on the screen behind the Pocket's menu.  (Cadash's
+    // fix, for Cadash's bug: the menu-open signal used to be ORed into reset,
+    // so opening the menu rebooted the game.)
+    wire run = !pause;
+    assign cen_phi1 = run && (div[2:0] == 3'd0);
+    assign cen_phi2 = run && (div[2:0] == 3'd4);
+    assign cen_z80  = run && (div[3:0] == 4'd2);    // 96 / 16 = 6 MHz
+    assign cen_ym   = run && (div      == 5'd6);    // 96 / 32 = 3 MHz
     assign cen_pix  = (dpix     == 4'd0);       // 96 / 14 = 6.857 MHz
 endmodule
 

@@ -12,6 +12,7 @@
 module masterw_core (
     input  logic        clk,
     input  logic        rst,
+    input  logic        pause,          // freeze the CPUs and sound, keep the picture
     input  logic        pix_sync,       // see clk_enables.sv
 
     // ---- memories ----
@@ -71,7 +72,7 @@ module masterw_core (
     // --------------------------------------------------------- clock enables
     logic cen_phi1, cen_phi2, cen_z80, cen_ym;
     clk_enables u_cen (
-        .clk(clk), .rst(rst), .pix_sync(pix_sync),
+        .clk(clk), .rst(rst), .pause(pause), .pix_sync(pix_sync),
         .cen_phi1(cen_phi1), .cen_phi2(cen_phi2),
         .cen_z80(cen_z80), .cen_ym(cen_ym), .cen_pix(pix_ce)
     );

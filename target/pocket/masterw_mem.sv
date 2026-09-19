@@ -146,30 +146,18 @@ module masterw_mem (
     assign c_wdata[0] = dlq_head[15:0];
     assign c_be[0]    = 2'b11;
 
-    // graphics for the line renderer: one 32-bit word is two SDRAM words
-    logic        gl_phase;
-    logic [15:0] gl_hi;
-    assign c_addr[1]  = GFX_W | {5'd0, gfxl_addr, gl_phase};
-    assign c_req[1]   = gfxl_req && !gfxl_ack;
+    // Client 1 was the line renderer, reading each 32-bit image word as two
+    // single accesses.  A single access is nine clocks of activate, read and
+    // precharge, so a word cost twenty and a line of three layers' worth ran
+    // to 5,700 of its 6,328 clocks in the real-memory bench -- and past them
+    // on the panel, where the first hardware picture came out with every
+    // other raster line stale beyond the point the renderer had reached.  The
+    // word now comes as one two-word burst (below), and this client is idle.
+    assign c_addr[1]  = '0;
+    assign c_req[1]   = 1'b0;
     assign c_we[1]    = 1'b0;
     assign c_wdata[1] = 16'd0;
     assign c_be[1]    = 2'b11;
-
-    always_ff @(posedge clk) begin
-        gfxl_ack <= 1'b0;
-        if (!gfxl_req) begin
-            gl_phase <= 1'b0;
-        end else if (c_ack[1]) begin
-            if (!gl_phase) begin
-                gl_hi    <= rdata;
-                gl_phase <= 1'b1;
-            end else begin
-                gfxl_q   <= {gl_hi, rdata};
-                gfxl_ack <= 1'b1;
-                gl_phase <= 1'b0;
-            end
-        end
-    end
 
     assign c_addr[2]  = PROG_W | {6'd0, mrom_addr};
     assign c_req[2]   = mrom_req && !mrom_ack;
@@ -194,22 +182,45 @@ module masterw_mem (
         if (c_ack[3]) srom_q <= srom_lo ? rdata[7:0] : rdata[15:8];
     end
 
-    // ------------------------------------------------- the sprite engine's burst
-    // 32 image words is 64 SDRAM words, consecutive
-    logic [15:0] gs_hi;
+    // ------------------------------------------------------ the burst port
+    // Two users, never busy together by design -- the sprite engine paints in
+    // vblank, the line renderer draws the visible lines -- but arbitrated all
+    // the same: the sprite engine's 64-word tile (32 image words) goes first
+    // if both ask, and whoever has the port keeps it to the end of the burst.
+    // The controller wants b_req low for a clock between bursts (B_GAP).
+    typedef enum logic [1:0] { B_IDLE, B_SPR, B_LINE, B_GAP } bown_t;
+    bown_t       bown;
+    logic [15:0] gs_hi, gl_hi;
     logic        b_wr, b_done;
     logic  [9:0] b_idx;
     logic [15:0] b_data;
 
+    wire line_want = gfxl_req && !gfxl_ack;
+
+    always_ff @(posedge clk) begin
+        if (init) bown <= B_IDLE;
+        else case (bown)
+            B_IDLE: if (gfxs_req) bown <= B_SPR; else if (line_want) bown <= B_LINE;
+            B_SPR:  if (!gfxs_req) bown <= B_GAP;
+            B_LINE: if (b_done)    bown <= B_GAP;
+            default:               bown <= B_IDLE;
+        endcase
+    end
+
+    wire        b_req_m  = (bown == B_SPR) ? gfxs_req : (bown == B_LINE);
+    wire [24:1] b_addr_m = GFX_W | {5'd0, ((bown == B_LINE) ? gfxl_addr : gfxs_addr), 1'b0};
+    wire  [9:0] b_len_m  = (bown == B_LINE) ? 10'd2 : 10'd64;
+
     always_ff @(posedge clk) begin
         gfxs_ack <= 1'b0;
-        if (b_wr) begin
-            if (!b_idx[0]) begin
-                gs_hi <= b_data;
-            end else begin
-                gfxs_q   <= {gs_hi, b_data};
-                gfxs_ack <= 1'b1;
-            end
+        gfxl_ack <= 1'b0;
+        if (b_wr && bown == B_SPR) begin
+            if (!b_idx[0]) gs_hi <= b_data;
+            else begin gfxs_q <= {gs_hi, b_data}; gfxs_ack <= 1'b1; end
+        end
+        if (b_wr && bown == B_LINE) begin
+            if (!b_idx[0]) gl_hi <= b_data;
+            else begin gfxl_q <= {gl_hi, b_data}; gfxl_ack <= 1'b1; end
         end
     end
 
@@ -224,8 +235,8 @@ module masterw_mem (
         .SDRAM_CKE(SDRAM_CKE), .SDRAM_CLK(SDRAM_CLK),
         .c_addr(c_addr), .c_req(c_req), .c_we(c_we), .c_wdata(c_wdata),
         .c_be(c_be), .c_ack(c_ack), .rdata(rdata),
-        .b_addr(GFX_W | {5'd0, gfxs_addr, 1'b0}), .b_len(10'd64),
-        .b_req(gfxs_req), .b_abort(1'b0),
+        .b_addr(b_addr_m), .b_len(b_len_m),
+        .b_req(b_req_m), .b_abort(1'b0),
         .b_wr(b_wr), .b_idx(b_idx), .b_data(b_data), .b_done(b_done),
         .b_we(1'b0), .b_wdata(16'd0), .b_be(2'b00), .b_widx()
     );
@@ -240,7 +251,7 @@ module masterw_mem (
         .sram_ub_n(sram_ub_n), .sram_lb_n(sram_lb_n)
     );
 
-    wire _unused = &{1'b0, b_done, 1'b0};
+    wire _unused = &{1'b0, c_ack[1], 1'b0};
 endmodule
 
 `default_nettype wire

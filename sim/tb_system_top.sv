@@ -157,7 +157,7 @@ module tb_system_top (
 
     // --------------------------------------------------------------- DUT
     masterw_core u_core (
-        .clk(clk), .rst(reset), .pix_sync(1'b0),
+        .clk(clk), .rst(reset), .pause(1'b0), .pix_sync(1'b0),
         .mrom_req(mrom_req), .mrom_addr(mrom_addr), .mrom_ack(mrom_ack), .mrom_q(mrom_q),
         .srom_req(srom_req), .srom_addr(srom_addr), .srom_ack(srom_ack), .srom_q(srom_q),
         .gfxl_req(gfxl_req), .gfxl_addr(gfxl_addr), .gfxl_ack(gfxl_ack), .gfxl_q(gfxl_q),
