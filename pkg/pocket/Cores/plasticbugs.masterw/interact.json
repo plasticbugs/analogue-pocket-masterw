@@ -21,11 +21,11 @@
         "mask": "0xFFFFFFF9",
         "options": [
           {
-            "name": "Arcade 3:4",
+            "name": "Fill screen",
             "value": "0x00000000"
           },
           {
-            "name": "Square pixels",
+            "name": "Arcade 3:4",
             "value": "0x00000002"
           }
         ]
