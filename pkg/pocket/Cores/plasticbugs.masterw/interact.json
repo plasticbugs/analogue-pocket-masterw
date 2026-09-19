@@ -21,11 +21,11 @@
         "mask": "0xFFFFFFF9",
         "options": [
           {
-            "name": "Fill screen",
+            "name": "Arcade 3:4",
             "value": "0x00000000"
           },
           {
-            "name": "Arcade 3:4",
+            "name": "Fill screen",
             "value": "0x00000002"
           }
         ]
@@ -85,28 +85,6 @@
             "value": "0x00000030"
           }
         ]
-      },
-      {
-        "name": "Cabinet: Cocktail",
-        "id": 10,
-        "type": "check",
-        "enabled": true,
-        "persist": true,
-        "address": "0xF1000000",
-        "defaultval": 0,
-        "mask": "0xFFFFFFFE",
-        "value": "0x00000001"
-      },
-      {
-        "name": "Flip Screen",
-        "id": 11,
-        "type": "check",
-        "enabled": true,
-        "persist": true,
-        "address": "0xF1000000",
-        "defaultval": 0,
-        "mask": "0xFFFFFFFD",
-        "value": "0x00000002"
       },
       {
         "name": "Service Mode",

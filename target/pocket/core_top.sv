@@ -1015,9 +1015,10 @@ module core_top
     //! monitor's 3:4 once rotated, 1 = square pixels).
     //! The aspect in video.json describes the raster BEFORE the scaler turns
     //! it, so the shape that reaches the panel is aspect_h:aspect_w (Time
-    //! Pilot's core found this first).  Preset 0, "Fill screen", is written
-    //! 9:10 and lands as the Pocket's own 10:9; preset 1, "Arcade 3:4", is
-    //! written 4:3.  Written the intuitive way round, both came out landscape.
+    //! Pilot's core found this first).  Preset 0, "Arcade 3:4" and the
+    //! default, is written 4:3; preset 1, "Fill screen", is written 9:10 and
+    //! lands as the Pocket's own 10:9.  Written the intuitive way round, both
+    //! came out landscape.
     wire [1:0] aspect_sel = mod_sw0[2:1];
     assign video_preset = (aspect_sel == 2'd1) ? 3'd1 : 3'd0;
 
