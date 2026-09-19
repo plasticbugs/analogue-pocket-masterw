@@ -29,7 +29,7 @@ regression gate.
 
 ## Status
 
-**v0.1.0 runs on a Pocket**: it boots, plays, and the service-mode crosshatch
+**v0.1.1 runs on a Pocket**: it boots, plays, and the service-mode crosshatch
 is clean.  What is proven, and how:
 
 * **The ROM image is exactly what MAME loads.** `tools/verify_rom.py`
@@ -68,6 +68,13 @@ What the first hardware runs found, none of which a bench had shown:
   and on the panel one of them lost writes in three 32-pixel blocks of the
   line. They are one block RAM now. Why the fitted array misbehaved with
   timing analysis clean is not proven.
+* **Runs of wrong pixels during play** (fixed in v0.1.1). Tilemap VRAM is one
+  SRAM port shared by the 68000 and the line renderer, and its ack pulse
+  carries no name. Routed by who was asking when it arrived rather than when
+  it was decided, it let the renderer take the 68000's ack -- and the 68000's
+  word as a tile code -- whenever the two coincided, which takes the game
+  writing tilemaps while lines are being built. `sim/run_pocket.sh` counts the
+  coincidence.
 * **The menu rebooted the game.** The Pocket's menu-open signal was ORed into
   reset. It now pauses the CPUs and the sound chip and leaves the picture up.
 
