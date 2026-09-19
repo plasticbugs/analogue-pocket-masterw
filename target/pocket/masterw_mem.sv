@@ -77,29 +77,51 @@ module masterw_mem (
     localparam logic [24:0] GFX_B  = 25'h090000;
 
     // ------------------------------------------------------------ download
-    // a byte at a time from the Pocket; a word is written when its odd byte
-    // arrives
-    logic [15:0] dl_word;
-    logic        dl_pending;
-    logic [24:1] dl_waddr;
+    // A byte at a time from the Pocket, paired into a 16-bit word because the
+    // image is big-endian throughout.  The loader cannot be told to wait --
+    // it sends a byte every eight clocks whatever the SDRAM is doing -- so
+    // the words go into a FIFO deep enough to ride out a refresh or a row
+    // change.  Nothing here may ever drop or alter a word.
+    //
+    // This was a single pending word, and it was wrong the way Cadash's was
+    // before it: the even byte of the next word landed in the pending word's
+    // high half while that word was still waiting for its write, so what
+    // finally went out was this word's low byte under the next word's high
+    // one.  The first words of every region read back right, which is what
+    // the panel showed, and the image behind them was peppered with bad
+    // words; the 68000 reached one within a few frames, took an address
+    // error and never came back -- a black screen on the first hardware run.
+    // The ideal-memory bench cannot see it.  sim/run_pocket.sh, at the
+    // loader's rate, can: it crashed the same way before this and boots now.
+    // Each byte is also taken once, on the rising edge of the strobe, which
+    // the Pocket holds for several clocks.
+    localparam int DLQ = 64;
+    logic [39:0] dlq [DLQ];             // {word address [24:1], data [15:0]}
+    logic  [6:0] dlq_wp, dlq_rp;
+    logic  [7:0] dl_hi;
+    logic        dl_we_d;
+    wire         dlq_empty = (dlq_wp == dlq_rp);
+    wire  [39:0] dlq_head  = dlq[dlq_rp[5:0]];
+    wire         nb        = dl_we && !dl_we_d;   // one byte, once
 
-    wire [24:1] dl_target = (dl_addr >= GFX_B) ? (GFX_W + 24'((dl_addr - GFX_B) >> 1))
-                          : (dl_addr >= SND_B) ? (SND_W + 24'((dl_addr - SND_B) >> 1))
-                                               : (PROG_W + 24'(dl_addr >> 1));
+    wire [24:1] dl_target = (dl_addr >= GFX_B) ? (GFX_W | 24'((dl_addr - GFX_B) >> 1))
+                          : (dl_addr >= SND_B) ? (SND_W | 24'((dl_addr - SND_B) >> 1))
+                                               : (PROG_W | 24'(dl_addr >> 1));
 
     always_ff @(posedge clk) begin
+        dl_we_d <= dl_we;
         if (init) begin
-            dl_pending <= 1'b0;
-        end else if (dl_we) begin
-            if (!dl_addr[0]) begin
-                dl_word[15:8] <= dl_data;       // the image is big-endian
-            end else begin
-                dl_word[7:0] <= dl_data;
-                dl_waddr     <= dl_target;
-                dl_pending   <= 1'b1;
+            dlq_wp <= '0;
+            dlq_rp <= '0;
+        end else begin
+            if (nb) begin
+                if (!dl_addr[0]) dl_hi <= dl_data;
+                else begin
+                    dlq[dlq_wp[5:0]] <= {dl_target, dl_hi, dl_data};
+                    dlq_wp <= dlq_wp + 7'd1;
+                end
             end
-        end else if (dl_pending && dl_ack) begin
-            dl_pending <= 1'b0;
+            if (!dlq_empty && dl_ack) dlq_rp <= dlq_rp + 7'd1;
         end
     end
 
@@ -118,10 +140,10 @@ module masterw_mem (
     logic [15:0] rdata;
 
     wire dl_ack = c_ack[0];
-    assign c_addr[0]  = dl_waddr;
-    assign c_req[0]   = dl_pending;
+    assign c_addr[0]  = dlq_head[39:16];
+    assign c_req[0]   = !dlq_empty;
     assign c_we[0]    = 1'b1;
-    assign c_wdata[0] = dl_word;
+    assign c_wdata[0] = dlq_head[15:0];
     assign c_be[0]    = 2'b11;
 
     // graphics for the line renderer: one 32-bit word is two SDRAM words

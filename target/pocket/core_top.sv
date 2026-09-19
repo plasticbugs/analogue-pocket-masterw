@@ -1050,39 +1050,20 @@ module core_top
         end
     end
 
-    //! Where the 68000 is when the watchdog first runs out.  On the first
-    //! hardware run the CPU was neither halted nor in reset and the watchdog
-    //! still fired, so it is alive and looping, or parked in a bus cycle
-    //! nobody acknowledges.  Two addresses tell those apart and say where:
-    //! the last one inside the program ROM, which is the loop, and the last
-    //! one outside both the ROM and main RAM, which is what the loop polls.
-    //! Frozen at the first expiry so the panel holds still to be read.
-    logic [23:0] dbg_rom, dbg_io, stuck_rom, stuck_io, stuck_now;
-    logic        stuck_wait, stuck_v;
-    logic  [7:0] wdog_kicks;
-    wire         dbg_is_rom = (mw_dbg_addr[23:19] == 5'd0);
-    wire         dbg_is_ram = (mw_dbg_addr[23:14] == 10'b00_1000_0000);
-    wire         wdog_kick  = mw_dbg_bus && (mw_dbg_addr[23:2] == 22'h200000) && mw_dbg_addr[1];
-    logic        kick_d;
-    always_ff @(posedge clk_sys) begin
-        kick_d <= wdog_kick;
-        if (mw_reset) begin
-            stuck_v <= 1'b0; wdog_kicks <= '0; dbg_rom <= '0; dbg_io <= '0;
-        end else begin
-            if (mw_dbg_bus) begin
-                if (dbg_is_rom)       dbg_rom <= {mw_dbg_addr, 1'b0};
-                else if (!dbg_is_ram) dbg_io  <= {mw_dbg_addr, 1'b0};
-            end
-            if (wdog_kick && !kick_d && !(&wdog_kicks)) wdog_kicks <= wdog_kicks + 8'd1;
-            if (mw_watchdog && !stuck_v) begin
-                stuck_v    <= 1'b1;
-                stuck_rom  <= dbg_rom;
-                stuck_io   <= dbg_io;
-                stuck_now  <= {mw_dbg_addr, 1'b0};
-                stuck_wait <= mw_dbg_wait;
-            end
-        end
-    end
+    //! First-fault capture (rtl/dbg_fault.sv): the first exception vector the
+    //! 68000 fetches that a healthy run never does, and where it was.  Proven
+    //! quiet across a healthy boot in sim/run_pocket.sh, and proven to fire --
+    //! vector 0C from 006A4A -- on the download fault that blacked out the
+    //! first hardware run.
+    logic        flt_rst;
+    always_ff @(posedge clk_sys) flt_rst <= mw_reset | pause_core;
+    wire         flt_hit;
+    wire   [7:0] flt_vec, flt_n;
+    wire  [23:0] flt_pc0, flt_pc1, flt_io;
+    dbg_fault u_fault (
+        .clk(clk_sys), .rst(flt_rst), .addr(mw_dbg_addr), .bus(mw_dbg_bus),
+        .hit(flt_hit), .vec(flt_vec), .pc0(flt_pc0), .pc1(flt_pc1), .io(flt_io), .faults(flt_n)
+    );
 
     wire [127:0] ovl_status = {
         // row 0: the marker first, so a reading can check its own alignment
@@ -1090,12 +1071,12 @@ module core_top
         pll_locked_sys, mem_ready, ioctl_download, allc_s,
         loaded, mw_reset, mw_halted, ovl_wdog,
         mw_in2,
-        // row 1: watchdog reads since reset (saturating), then the last
-        // program-ROM address before the watchdog first ran out
-        wdog_kicks, stuck_rom,
-        // row 2: captured / parked in an unacknowledged cycle / six spare,
-        // then the last address outside ROM and main RAM
-        stuck_v, stuck_wait, 6'd0, stuck_io,
+        // row 1: the vector first fetched in error (00 = none, the healthy
+        // reading), then the code address just before it
+        flt_vec, flt_pc0,
+        // row 2: how many such fetches since (saturating), then the last
+        // address outside ROM and main RAM before the first
+        flt_n, flt_io,
         // row 3: what came back out of tilemap VRAM.  A55A 5AA5 is a pass.
         sram_rd0, sram_rd1
     };

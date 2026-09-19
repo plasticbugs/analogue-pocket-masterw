@@ -4,6 +4,7 @@
 set_global_assignment -name SEARCH_PATH [file join $::quartus(qip_path) ""]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "clk_enables.sv"]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "dbg_overlay.sv"]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "dbg_fault.sv"]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "masterw_core.sv"]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "masterw_main.sv"]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "masterw_sound.sv"]

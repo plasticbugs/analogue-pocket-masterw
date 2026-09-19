@@ -25,3 +25,6 @@ artifacts/audio/*.wav
 # sim/lint.sh builds its waiver file to match the installed Verilator
 sim/waivers.vlt
 sim/obj_*.log
+
+# raw frame dumps from the benches; the PNG beside each is what is kept
+artifacts/**/*.rgb

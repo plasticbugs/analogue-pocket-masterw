@@ -47,6 +47,9 @@ int main(int argc, char **argv) {
     std::string rom, outdir = "artifacts/system", wav;
     int frames = 60, coin = -1, start = -1;
     int lat_rom = 8, lat_gfx = 5, lat_vram = 6;
+    // clocks per downloaded byte: 1 for the ideal-memory bench, a dozen for the
+    // real SDRAM path, which is about what the Pocket's loader leaves it
+    int dlgap = 1;
     std::set<int> snaps;
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
@@ -59,6 +62,7 @@ int main(int argc, char **argv) {
         else if (a == "-latrom") lat_rom = atoi(next().c_str());
         else if (a == "-latgfx") lat_gfx = atoi(next().c_str());
         else if (a == "-latvram") lat_vram = atoi(next().c_str());
+        else if (a == "-dlgap") dlgap = atoi(next().c_str());
         else if (a == "-snap") {
             std::string s = next();
             size_t p = 0;
@@ -95,10 +99,13 @@ int main(int argc, char **argv) {
     dut->dswa = 0xff; dut->dswb = 0xff;
     dut->in0 = 0xff; dut->in1 = 0xff; dut->in2 = 0xff;
     for (int i = 0; i < 16; i++) tick();
+    // the real SDRAM needs its power-up sequence before it takes a write
+    if (dlgap > 1) for (int i = 0; i < 20000; i++) tick();
 
     for (int i = 0; i < IMAGE_LEN; i++) {
         dut->dl_we = 1; dut->dl_addr = i; dut->dl_data = image[i];
         tick();
+        if (dlgap > 1) { dut->dl_we = 0; for (int g = 1; g < dlgap; g++) tick(); }
     }
     dut->dl_we = 0;
     for (int i = 0; i < 16; i++) tick();
