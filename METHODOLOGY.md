@@ -49,12 +49,29 @@ against it constantly.**
 
 | Tool | Role | Notes |
 |---|---|---|
-| MAME (`brew install mame`) | Oracle | Use `-video none -sound none -nothrottle -skip_gameinfo`, and always `-cfg_directory`/`-nvram_directory` pointing somewhere disposable |
+| MAME (`brew install mame`) | Oracle | `-video none -sound none -nothrottle -skip_gameinfo`, always `-cfg_directory`/`-nvram_directory` somewhere disposable, and the four flags below that keep it off the screen |
 | MAME Lua (`-autoboot_script`) | Instrumentation | `install_write_tap`, `register_frame_done`, `ioport` fields, `machine.video:snapshot()`, `-wavwrite` |
 | Verilator | RTL simulation | Fast enough for whole-frame and whole-second simulations |
 | Quartus 18.1 in Docker | Synthesis | `raetro/quartus:pocket`, `--platform linux/amd64` on Apple silicon |
 | Ghidra (optional, via MCP) | Disassembly | Only as far as needed to answer specific questions |
 | Python 3 | Everything else | Reference renderer, image diffing, ROM building, audio analysis. No numpy needed |
+
+**Keep MAME off the display** *(Master of Weapon)*. `-video none` stops MAME
+rendering to a window but not creating one, and MAME's defaults are fullscreen
+(`window 0`, `maximize 1`) — so on macOS the desktop jumps to another Space
+every time a probe runs, which during a capture session is several times a
+minute and lands on whatever the user was doing. Three measures, because they
+fail independently:
+
+```sh
+SDL_VIDEODRIVER=dummy \            # SDL never opens the display; read before MAME parses anything
+mame ... -videodriver dummy \      # the same instruction through MAME's own option
+         -window -nomaximize       # and if a window appears anyway it steals no Space
+```
+
+Snapshots come out byte-identical, so nothing about the capture changes. Put
+it in the wrapper script, not in each invocation, so no ad-hoc probe can
+forget it.
 
 Two Quartus habits worth keeping:
 
