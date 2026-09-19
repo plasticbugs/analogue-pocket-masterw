@@ -64,6 +64,8 @@ module masterw_core (
     output logic [17:0] spr_cycles,
     output logic [15:0] ren_cycles,
     output logic        dbg_halted,
+    output logic [23:1] dbg_addr,
+    output logic        dbg_bus, dbg_wait,
     output logic        watchdog_reset
 );
     // --------------------------------------------------------- clock enables
@@ -105,7 +107,8 @@ module masterw_core (
         .ciu_port_wr(m_port_wr), .ciu_comm_wr(m_comm_wr), .ciu_comm_rd(m_comm_rd),
         .ciu_din(m_din), .ciu_dout(m_dout),
         .pal_index(pix_index), .pal_rgb(rgb),
-        .dbg_halted(dbg_halted), .dbg_addr()
+        .dbg_halted(dbg_halted), .dbg_addr(dbg_addr),
+        .dbg_bus(dbg_bus), .dbg_wait(dbg_wait)
     );
 
     tc0180vcu u_vcu (

@@ -60,7 +60,9 @@ module masterw_main (
     output logic [23:0] pal_rgb,
 
     output logic        dbg_halted,
-    output logic [23:1] dbg_addr
+    output logic [23:1] dbg_addr,
+    output logic        dbg_bus,        // a bus cycle is in progress
+    output logic        dbg_wait        // ...and has not been acknowledged yet
 );
     // ---------------------------------------------------------------- CPU
     logic [23:1] cpu_addr;
@@ -88,6 +90,8 @@ module masterw_main (
     );
     assign dbg_halted = ~cpu_haltedn;
     assign dbg_addr   = cpu_addr;
+    assign dbg_bus    = bus;
+    assign dbg_wait   = bus & ~done;
 
     // ----------------------------------------------------------- interrupts
     logic inth_d, intl_d, irq5, irq4;

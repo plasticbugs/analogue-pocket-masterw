@@ -169,7 +169,8 @@ module tb_system_top (
         .pix_ce(pix_ce), .de(de),
         .snd(snd),
         .vpos(vpos), .spr_cycles(spr_cycles), .ren_cycles(ren_cycles),
-        .dbg_halted(dbg_halted), .watchdog_reset(watchdog_reset)
+        .dbg_halted(dbg_halted), .dbg_addr(), .dbg_bus(), .dbg_wait(),
+        .watchdog_reset(watchdog_reset)
     );
 endmodule
 

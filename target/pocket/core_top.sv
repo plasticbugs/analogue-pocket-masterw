@@ -977,6 +977,7 @@ module core_top
     wire [17:0] mw_spr_cycles;
     wire [15:0] mw_ren_cycles;
     wire        mw_halted, mw_watchdog;
+    wire [23:1] mw_dbg_addr;  wire mw_dbg_bus, mw_dbg_wait;
 
     //! The dot enable's phase is pinned to clk_vid: the clock's own toggle,
     //! seen through two system-clock flops, restarts the core's dot divider
@@ -1003,7 +1004,8 @@ module core_top
         .hblank(mw_hb), .vblank(mw_vb), .pix_ce(mw_pix_ce), .de(mw_de),
         .snd(mw_snd),
         .vpos(mw_vpos), .spr_cycles(mw_spr_cycles), .ren_cycles(mw_ren_cycles),
-        .dbg_halted(mw_halted), .watchdog_reset(mw_watchdog)
+        .dbg_halted(mw_halted), .dbg_addr(mw_dbg_addr), .dbg_bus(mw_dbg_bus), .dbg_wait(mw_dbg_wait),
+        .watchdog_reset(mw_watchdog)
     );
 
     //! Screen shape from the Interact menu (video.json mode 0 = the arcade
@@ -1048,16 +1050,52 @@ module core_top
         end
     end
 
+    //! Where the 68000 is when the watchdog first runs out.  On the first
+    //! hardware run the CPU was neither halted nor in reset and the watchdog
+    //! still fired, so it is alive and looping, or parked in a bus cycle
+    //! nobody acknowledges.  Two addresses tell those apart and say where:
+    //! the last one inside the program ROM, which is the loop, and the last
+    //! one outside both the ROM and main RAM, which is what the loop polls.
+    //! Frozen at the first expiry so the panel holds still to be read.
+    logic [23:0] dbg_rom, dbg_io, stuck_rom, stuck_io, stuck_now;
+    logic        stuck_wait, stuck_v;
+    logic  [7:0] wdog_kicks;
+    wire         dbg_is_rom = (mw_dbg_addr[23:19] == 5'd0);
+    wire         dbg_is_ram = (mw_dbg_addr[23:14] == 10'b00_1000_0000);
+    wire         wdog_kick  = mw_dbg_bus && (mw_dbg_addr[23:2] == 22'h200000) && mw_dbg_addr[1];
+    logic        kick_d;
+    always_ff @(posedge clk_sys) begin
+        kick_d <= wdog_kick;
+        if (mw_reset) begin
+            stuck_v <= 1'b0; wdog_kicks <= '0; dbg_rom <= '0; dbg_io <= '0;
+        end else begin
+            if (mw_dbg_bus) begin
+                if (dbg_is_rom)       dbg_rom <= {mw_dbg_addr, 1'b0};
+                else if (!dbg_is_ram) dbg_io  <= {mw_dbg_addr, 1'b0};
+            end
+            if (wdog_kick && !kick_d && !(&wdog_kicks)) wdog_kicks <= wdog_kicks + 8'd1;
+            if (mw_watchdog && !stuck_v) begin
+                stuck_v    <= 1'b1;
+                stuck_rom  <= dbg_rom;
+                stuck_io   <= dbg_io;
+                stuck_now  <= {mw_dbg_addr, 1'b0};
+                stuck_wait <= mw_dbg_wait;
+            end
+        end
+    end
+
     wire [127:0] ovl_status = {
         // row 0: the marker first, so a reading can check its own alignment
         8'b1010_1010, ovl_frames,
         pll_locked_sys, mem_ready, ioctl_download, allc_s,
         loaded, mw_reset, mw_halted, ovl_wdog,
         mw_in2,
-        // row 1
-        mw_spr_cycles, mw_ren_cycles[13:0],
-        // row 2: the first word each ROM region handed back
-        first_prog, first_snd, first_gfx,
+        // row 1: watchdog reads since reset (saturating), then the last
+        // program-ROM address before the watchdog first ran out
+        wdog_kicks, stuck_rom,
+        // row 2: captured / parked in an unacknowledged cycle / six spare,
+        // then the last address outside ROM and main RAM
+        stuck_v, stuck_wait, 6'd0, stuck_io,
         // row 3: what came back out of tilemap VRAM.  A55A 5AA5 is a pass.
         sram_rd0, sram_rd1
     };
