@@ -24,10 +24,17 @@ set_clock_groups -asynchronous \
 # larger shift leaves that less time, while the address and command the core
 # drives are captured by the chip, so a larger shift leaves those more.
 #
-# The Gaiapolis core's 6.51 ns left this design 3.06 ns of slack on the
-# outputs and -0.27 on the data inputs -- the whole build's critical path, and
-# on the wrong side of zero.  5.208 ns moves 1.30 ns from the side with room
-# to the side without, which is where the two come out even.
+# Both checks on the captured data move with the shift, and in opposite
+# directions: setup gets 2T - shift, hold gets T - shift, so a nanosecond
+# taken off the shift is a nanosecond onto setup and a nanosecond off hold.
+# Measured on this design, at the corner where each is worst:
+#
+#     setup slack (slow 85C) = 6.241 - shift
+#     hold  slack (fast  0C) = shift - 5.519
+#
+# The Gaiapolis core's 6.51 ns put setup at -0.27, and 5.208 overshot the
+# other way and put hold at -0.31.  They meet at 5.880; 5.859 is the nearest
+# step the 960 MHz VCO can resolve, and leaves about 0.35 ns on both.
 create_generated_clock -name dram_clk -source \
     [get_pins {ic|core_pll|core_pll_inst|altera_pll_i|general[3].gpll~PLL_OUTPUT_COUNTER|divclk}] \
     [get_ports {dram_clk}]
