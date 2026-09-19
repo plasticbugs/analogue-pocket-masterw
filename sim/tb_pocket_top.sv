@@ -113,6 +113,18 @@ module tb_system_top (
         if (f_hit && !f_hit_d)
             $display("FAULT CAPTURE: vector %02x, pc0 %06x, pc1 %06x, io %06x", f_vec, f_pc0, f_pc1, f_io);
     end
+
+    // How often the renderer raises its VRAM request on the very clock a
+    // 68000 access is acknowledged -- the race the ack routing in tc0180vcu
+    // has to survive.  Not zero: that is the point of counting it.
+    int stolen;
+    always_ff @(posedge clk)
+        if (f_rst) stolen <= 0;
+        else if (u_core.u_vcu.vram_ack && u_core.u_vcu.ren_vram_req && !u_core.u_vcu.ren_req_d) begin
+            stolen <= stolen + 1;
+            if (stolen < 3) $display("VRAM ack race at vpos %0d (68000's ack, renderer's request rising)", vpos);
+        end
+    final $display("VRAM ack races seen: %0d", stolen);
 endmodule
 
 `default_nettype wire

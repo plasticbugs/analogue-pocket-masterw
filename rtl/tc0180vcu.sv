@@ -386,7 +386,19 @@ module tc0180vcu #(
     assign vram_addr = ren_vram_req ? ren_vram_addr : addr[15:1];
     assign vram_din  = din;
     assign vram_ben  = ben;
-    assign ren_vram_ack = vram_ack & ren_vram_req;
+    // The port's ack is one pulse with no name on it, and it is decided the
+    // clock before it is seen: the port acks only if the request still
+    // standing then is the one it began.  So whose ack it is depends on who
+    // held the mux THEN, not now.  Routing it by the request lines of the
+    // clock it arrives in handed the 68000's ack to the renderer whenever the
+    // renderer raised its request on that very clock: it took the CPU's word
+    // for its tile code and drew one wrong tile.  On the panel that was short
+    // runs of noise in the first two raster lines -- the only ones built
+    // while the vblank handlers are still writing the tilemaps -- which
+    // vanished when the menu paused the CPU.
+    logic ren_req_d;
+    always_ff @(posedge clk) ren_req_d <= ren_vram_req;
+    assign ren_vram_ack = vram_ack & ren_req_d & ren_vram_req;
 
     // ------------------------------------------------------------- CPU side
     wire ctrl_sel = cs && (addr[18:1] >= 18'h0C000) && (addr[18:1] < 18'h0C010);
@@ -415,7 +427,7 @@ module tc0180vcu #(
             // one-clock accesses for everything inside the chip
             if (!cpu_vram_sel) ack <= 1'b1;
         end
-        if (cpu_vram_sel && vram_ack && !ren_vram_req) ack <= 1'b1;
+        if (cpu_vram_sel && vram_ack && !ren_req_d) ack <= 1'b1;
     end
 
     always_comb begin
