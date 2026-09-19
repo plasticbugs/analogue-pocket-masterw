@@ -3,6 +3,9 @@
 # sys_constr.sdc. The 96 MHz system clock, its 6.857 MHz video pair and the
 # shifted SDRAM clock all come from core_pll and are timed as one related
 # group; the two 74.25 MHz inputs and the audio PLL are asynchronous to it.
+# The PLL's fifth output drives nothing in core_top, so no clock of its own
+# reaches the netlist and it is not named here -- naming it only bought an
+# ignored-filter warning that hid the ones that mattered.
 # ==============================================================================
 set_clock_groups -asynchronous \
  -group { bridge_spiclk } \
@@ -11,8 +14,7 @@ set_clock_groups -asynchronous \
  -group { ic|core_pll|core_pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk \
           ic|core_pll|core_pll_inst|altera_pll_i|general[1].gpll~PLL_OUTPUT_COUNTER|divclk \
           ic|core_pll|core_pll_inst|altera_pll_i|general[2].gpll~PLL_OUTPUT_COUNTER|divclk \
-          ic|core_pll|core_pll_inst|altera_pll_i|general[3].gpll~PLL_OUTPUT_COUNTER|divclk \
-          ic|core_pll|core_pll_inst|altera_pll_i|general[4].gpll~PLL_OUTPUT_COUNTER|divclk } \
+          ic|core_pll|core_pll_inst|altera_pll_i|general[3].gpll~PLL_OUTPUT_COUNTER|divclk } \
  -group { ic|pocket_audio_mixer|audio_pll|mf_audio_pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk } \
  -group { ic|pocket_audio_mixer|audio_pll|mf_audio_pll_inst|altera_pll_i|general[1].gpll~PLL_OUTPUT_COUNTER|divclk }
 
@@ -87,9 +89,14 @@ set_multicycle_path -hold  3 -from $YM -to $YM
 # expansion -- re-evaluates once per dot, fourteen clocks apart. Only the
 # registers that genuinely latch at that rate get the multicycle: the line
 # renderer and the sprite engine run every clock and must not be given one.
-set PAL [get_registers {*|masterw_main:*|pal_vid_q[*]}]
-set_multicycle_path -setup 4 -to $PAL
-set_multicycle_path -hold  3 -to $PAL
+# The palette read used to be given a multicycle here too.  It never took:
+# pal_vid_q is the M10K's own output register, so Quartus merges it into the
+# altsyncram and no register by that name survives to be constrained -- the
+# fit log said so in Warning (332174) every build, and the constraint did
+# nothing.  It is gone rather than re-aimed at the RAM instance, because both
+# ports of that RAM merge into the one instance and the CPU's port is not on
+# the dot's fourteen-clock cadence.  The read closes on a single clock as it
+# stands, which is the stricter claim of the two.
 set PIX [get_registers {*|tc0180vcu:*|pix_index[*] *|tc0180vcu:*|pix_de}]
 set_multicycle_path -setup 4 -to $PIX
 set_multicycle_path -hold  3 -to $PIX

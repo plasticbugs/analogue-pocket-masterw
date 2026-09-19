@@ -65,6 +65,24 @@ jobs:
             exit 1
           fi
 
+      - name: Check every constraint was applied
+        run: |
+          # A constraint whose filter matches nothing is silently ignored, so
+          # the SDC can claim a relaxation the analyser never granted -- a
+          # multicycle aimed at a register Quartus had merged into a RAM sat
+          # dead in this file for weeks.  Only our own SDC is policed; the
+          # BSP's sys_constr.sdc names dram_clk before it exists and there is
+          # nothing to do about that here.
+          # 332049 lands in the fitter's report, 332174 only in the analyser's.
+          rpts="projects/output_files/masterw_pocket.fit.rpt projects/output_files/masterw_pocket.sta.rpt"
+          if grep -hE 'Warning \(3320(49|74)\).*masterw_pocket\.sdc' $rpts | sed 's/ File:.*//' | sort -u | grep .; then
+            echo
+            echo "the constraints above matched nothing and were ignored."
+            echo "fix the filter or delete the line -- do not leave it lying."
+            exit 1
+          fi
+          echo "every constraint in masterw_pocket.sdc was applied"
+
       - name: Check timing closed
         run: |
           sta=projects/output_files/masterw_pocket.sta.summary
@@ -121,4 +139,9 @@ jobs:
             projects/output_files/*.rpt
             projects/output_files/*.summary
             projects/output_files/worst_paths.txt
+            projects/output_files/worst_paths_cold.txt
+            projects/output_files/worst_dram.txt
+            projects/output_files/worst_hold.txt
+            projects/output_files/clocks.txt
+            projects/output_files/sdc_applied.txt
           if-no-files-found: ignore
