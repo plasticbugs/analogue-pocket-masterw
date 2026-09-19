@@ -16,9 +16,16 @@ set_clock_groups -asynchronous \
  -group { ic|pocket_audio_mixer|audio_pll|mf_audio_pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk } \
  -group { ic|pocket_audio_mixer|audio_pll|mf_audio_pll_inst|altera_pll_i|general[1].gpll~PLL_OUTPUT_COUNTER|divclk }
 
-# SDRAM: the chip is clocked by the phase-shifted PLL output, carried over
-# from the Gaiapolis core with the same controller and the same 6.51 ns
-# shift, which is proven on the panel there.
+# SDRAM: the chip is clocked by the phase-shifted PLL output.  The shift
+# divides the budget between two checks that pull opposite ways: the data the
+# chip returns is captured by an I/O-cell register on the core clock, so a
+# larger shift leaves that less time, while the address and command the core
+# drives are captured by the chip, so a larger shift leaves those more.
+#
+# The Gaiapolis core's 6.51 ns left this design 3.06 ns of slack on the
+# outputs and -0.27 on the data inputs -- the whole build's critical path, and
+# on the wrong side of zero.  5.208 ns moves 1.30 ns from the side with room
+# to the side without, which is where the two come out even.
 create_generated_clock -name dram_clk -source \
     [get_pins {ic|core_pll|core_pll_inst|altera_pll_i|general[3].gpll~PLL_OUTPUT_COUNTER|divclk}] \
     [get_ports {dram_clk}]
