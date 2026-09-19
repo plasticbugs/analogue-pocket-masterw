@@ -92,20 +92,24 @@ module vcu_line #(
         return r;
     endfunction
 
-    // log2 of the scroll block size, which MAME's 256 / lines_per_block makes
-    // a power of two
-    function automatic logic [3:0] block_shift(input logic [7:0] blocks);
+    // The scroll block a line falls in.  MAME's 256 / lines_per_block makes
+    // the block size a power of two, and the line's block is the line with
+    // the low bits cleared -- so this returns the mask that clears them
+    // rather than the shift amount, because (y >> s) << s is exactly
+    // y & ~((1 << s) - 1) and the mask costs one AND where the pair of
+    // shifts cost two barrel shifters.
+    function automatic logic [8:0] block_mask(input logic [7:0] blocks);
         logic [8:0] lpb;
         lpb = 9'd256 - {1'b0, blocks};
-        if      (lpb[8]) return 4'd8;
-        else if (lpb[7]) return 4'd7;
-        else if (lpb[6]) return 4'd6;
-        else if (lpb[5]) return 4'd5;
-        else if (lpb[4]) return 4'd4;
-        else if (lpb[3]) return 4'd3;
-        else if (lpb[2]) return 4'd2;
-        else if (lpb[1]) return 4'd1;
-        else             return 4'd0;
+        if      (lpb[8]) return 9'b1_0000_0000;
+        else if (lpb[7]) return 9'b1_1000_0000;
+        else if (lpb[6]) return 9'b1_1100_0000;
+        else if (lpb[5]) return 9'b1_1110_0000;
+        else if (lpb[4]) return 9'b1_1111_0000;
+        else if (lpb[3]) return 9'b1_1111_1000;
+        else if (lpb[2]) return 9'b1_1111_1100;
+        else if (lpb[1]) return 9'b1_1111_1110;
+        else             return 9'b1_1111_1111;
     endfunction
 
     // ------------------------------------------------------------ the passes
@@ -171,9 +175,15 @@ module vcu_line #(
     wire [14:0] tx_code  = {(code[11] ? tx_bank1[3:0] : tx_bank0[3:0]), code[10:0]};
     wire [17:0] tx_word  = {tx_code, 3'd0} + {15'd0, y[2:0]};
 
-    // scroll pair for this line's block
-    wire  [3:0] shft    = block_shift((kind == K_BG) ? bg_blocks : fg_blocks);
-    wire  [8:0] blk_y   = (y >> shft) << shft;
+    // Scroll pair for this line's block.  Each layer's mask is built from its
+    // own register, so the subtract and the priority encoder sit beside the
+    // kind decode instead of behind it: once kind resolves, all that is left
+    // is a mux, an AND and the add.  This was the critical path -- step[2]
+    // through the decode, a subtract, two barrel shifts and a select, 9.9 ns
+    // of it at the cold corner.
+    wire  [8:0] msk_bg  = block_mask(bg_blocks);
+    wire  [8:0] msk_fg  = block_mask(fg_blocks);
+    wire  [8:0] blk_y   = y & ((kind == K_BG) ? msk_bg : msk_fg);
     wire  [9:0] scr_idx = ((kind == K_BG) ? 10'h200 : 10'h000) + {blk_y, 1'b0};
 
     wire  [9:0] mx0_next = 10'd0 - scrollx[9:0];

@@ -833,7 +833,7 @@ module core_top
     wire  allc_s;
     synch_3 sync_allc(dataslot_allcomplete, allc_s, clk_sys);
     always_ff @(posedge clk_sys) if (allc_s) loaded <= 1'b1;
-    wire  mw_reset = reset_sw_s | ~loaded | ~mem_ready;
+    wire  mw_reset = reset_sw_s | ~loaded | ~mem_ready | ~sram_done;
 
     //! ROM: one slot with the flat 1,638,400-byte image from tools/mra_build.py.
     wire        ioctl_isROM = ioctl_download && ioctl_index == 16'h0;
@@ -889,6 +889,66 @@ module core_top
     wire        vram_req, vram_we, vram_ack;
     wire [14:0] vram_addr;  wire [15:0] vram_din, vram_q;  wire [1:0] vram_ben;
 
+    //! ------------------------------------------------------------------
+    //! SRAM bring-up test.  The tilemap VRAM is the one memory with no
+    //! read-back in the overlay, and a dead one would blank every tilemap
+    //! while leaving the CPU and the sprite engine looking healthy -- which
+    //! is exactly what a black screen with a running frame counter looks
+    //! like.  So before the core is let out of reset, two known words go
+    //! into VRAM and come back out, and what came back is shown on the
+    //! panel.  The core is still in reset here, so nothing else is driving
+    //! the port and the two cannot collide.
+    //!
+    //! A55A and 5AA5 are chosen to be each other's byte-swap and nibble
+    //! inverse, so a stuck bit, a swapped byte lane and a dead bus all read
+    //! differently from a pass.
+    localparam logic [15:0] SRAM_T0 = 16'hA55A, SRAM_T1 = 16'h5AA5;
+    wire        cv_req, cv_we, cv_ack;
+    wire [14:0] cv_addr;  wire [15:0] cv_din;  wire [1:0] cv_ben;
+    logic [15:0] sram_rd0, sram_rd1;
+    logic  [2:0] sram_st;
+    logic        sram_done, tv_req, tv_we;
+    logic [14:0] tv_addr;
+    logic [15:0] tv_din;
+    // A port that never acknowledges would leave the core in reset for good
+    // and the panel showing nothing but zeros, which looks the same as a
+    // memory that answers wrongly.  Give up after a millisecond instead: the
+    // read-backs stay zero, but the core runs and says so.
+    logic [16:0] sram_tmo;
+
+    always_ff @(posedge clk_sys) begin
+        if (!mem_ready) begin
+            sram_st <= 3'd0; sram_done <= 1'b0; tv_req <= 1'b0; tv_we <= 1'b0;
+            sram_rd0 <= '0; sram_rd1 <= '0; sram_tmo <= '0;
+        end else if (!sram_done) begin
+            sram_tmo <= sram_tmo + 17'd1;
+            if (&sram_tmo) sram_done <= 1'b1;       // ~1.4 ms at 96 MHz
+            case (sram_st)
+                3'd0: begin tv_we <= 1'b1; tv_addr <= 15'h0000; tv_din <= SRAM_T0;
+                            tv_req <= 1'b1; sram_st <= 3'd1; end
+                3'd1: if (vram_ack) begin tv_req <= 1'b0; sram_st <= 3'd2; end
+                3'd2: begin tv_we <= 1'b1; tv_addr <= 15'h0001; tv_din <= SRAM_T1;
+                            tv_req <= 1'b1; sram_st <= 3'd3; end
+                3'd3: if (vram_ack) begin tv_req <= 1'b0; sram_st <= 3'd4; end
+                3'd4: begin tv_we <= 1'b0; tv_addr <= 15'h0000;
+                            tv_req <= 1'b1; sram_st <= 3'd5; end
+                3'd5: if (vram_ack) begin sram_rd0 <= vram_q; tv_req <= 1'b0; sram_st <= 3'd6; end
+                3'd6: begin tv_we <= 1'b0; tv_addr <= 15'h0001;
+                            tv_req <= 1'b1; sram_st <= 3'd7; end
+                3'd7: if (vram_ack) begin sram_rd1 <= vram_q; tv_req <= 1'b0;
+                                          sram_done <= 1'b1; end
+                default: ;
+            endcase
+        end
+    end
+
+    assign vram_req  = sram_done ? cv_req  : tv_req;
+    assign vram_we   = sram_done ? cv_we   : tv_we;
+    assign vram_addr = sram_done ? cv_addr : tv_addr;
+    assign vram_din  = sram_done ? cv_din  : tv_din;
+    assign vram_ben  = sram_done ? cv_ben  : 2'b11;
+    assign cv_ack    = sram_done ? vram_ack : 1'b0;
+
     masterw_mem u_mem (
         .clk(clk_sys), .clk_sdram(clk_sdram), .init(mem_init), .ready(mem_ready),
         .rd_late(mw_rd_late), .burst_slow(mw_burst_slow),
@@ -935,8 +995,8 @@ module core_top
         .srom_req(srom_req), .srom_addr(srom_addr), .srom_ack(srom_ack), .srom_q(srom_q),
         .gfxl_req(gfxl_req), .gfxl_addr(gfxl_addr), .gfxl_ack(gfxl_ack), .gfxl_q(gfxl_q),
         .gfxs_req(gfxs_req), .gfxs_addr(gfxs_addr), .gfxs_ack(gfxs_ack), .gfxs_q(gfxs_q),
-        .vram_req(vram_req), .vram_we(vram_we), .vram_addr(vram_addr),
-        .vram_din(vram_din), .vram_ben(vram_ben), .vram_ack(vram_ack), .vram_q(vram_q),
+        .vram_req(cv_req), .vram_we(cv_we), .vram_addr(cv_addr),
+        .vram_din(cv_din), .vram_ben(cv_ben), .vram_ack(cv_ack), .vram_q(vram_q),
         .dswa(mw_dswa), .dswb(mw_dswb),
         .in0(mw_in0), .in1(mw_in1), .in2(mw_in2),
         .rgb(mw_rgb), .hsync(mw_hs), .vsync(mw_vs),
@@ -988,16 +1048,18 @@ module core_top
         end
     end
 
-    wire [95:0] ovl_status = {
-        // row 0
-        ovl_frames,
+    wire [127:0] ovl_status = {
+        // row 0: the marker first, so a reading can check its own alignment
+        8'b1010_1010, ovl_frames,
         pll_locked_sys, mem_ready, ioctl_download, allc_s,
         loaded, mw_reset, mw_halted, ovl_wdog,
-        mw_in2, mw_dswa,
+        mw_in2,
         // row 1
         mw_spr_cycles, mw_ren_cycles[13:0],
-        // row 2
-        first_prog, first_snd, first_gfx
+        // row 2: the first word each ROM region handed back
+        first_prog, first_snd, first_gfx,
+        // row 3: what came back out of tilemap VRAM.  A55A 5AA5 is a pass.
+        sram_rd0, sram_rd1
     };
 
     wire [7:0] ovl_r, ovl_g, ovl_b;
