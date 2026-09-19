@@ -12,7 +12,18 @@
 # indistinguishable from "no match", so the threshold is kept low and the
 # pattern is self-tested at startup.
 set -e
-cd "$(git rev-parse --show-toplevel)"
+# A guard that cannot check must not say "passed".  Outside a repository, or
+# with nothing tracked, there is no staged set to inspect -- and silence there
+# would look exactly like a clean one (METHODOLOGY section 5.8).
+root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    echo "no-rom check ABORTED: not in a git repository, so there is nothing to check" >&2
+    exit 2
+}
+cd "$root"
+if [ -z "$(git ls-files | head -1)" ]; then
+    echo "no-rom check ABORTED: no tracked files -- stage the tree first (git add -A)" >&2
+    exit 2
+fi
 
 HEXRUN='^[0-9a-f]{200,}$'
 # self-test: the pattern must match a known-bad string and reject a known-good one
