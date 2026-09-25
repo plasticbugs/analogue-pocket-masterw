@@ -28,12 +28,12 @@
     <rom index="0" zip="masterw.zip" md5="fd13534f27262a0ac61f2ca7fc7d20b4">
         <!-- 68000 program, 512 KB -->
         <interleave output="16">
-            <part name="b72_06.33" crc="ae848eff" map="10"/>
-            <part name="b72_12.24" crc="7176ce70" map="01"/>
+            <part name="b72_06.33" crc="ae848eff" map="01"/>
+            <part name="b72_12.24" crc="7176ce70" map="10"/>
         </interleave>
         <interleave output="16">
-            <part name="b72_04.34" crc="141e964c" map="10"/>
-            <part name="b72_03.25" crc="f4523496" map="01"/>
+            <part name="b72_04.34" crc="141e964c" map="01"/>
+            <part name="b72_03.25" crc="f4523496" map="10"/>
         </interleave>
 
         <!-- Z80 sound program, 64 KB: four 16 KB banks -->
@@ -41,8 +41,8 @@
 
         <!-- graphics, 1 MB -->
         <interleave output="32">
-            <part name="b72-02.6" crc="843444eb" map="1200"/>
-            <part name="b72-01.5" crc="a24ac26e" map="0012"/>
+            <part name="b72-02.6" crc="843444eb" map="0021"/>
+            <part name="b72-01.5" crc="a24ac26e" map="2100"/>
         </interleave>
     </rom>
 
