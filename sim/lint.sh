@@ -48,5 +48,22 @@ if [ -z "$out" ]; then echo ok
 else echo; echo "$out" | sed 's/^/    /'; fail=1
 fi
 
+
+# the Analogizer wrapper, with the adapter's vendored module behind it and a
+# stand-in for its one VHDL file.  The vendored files are kept as upstream wrote
+# them, so their warnings are dropped by path (the waiver file's -file patterns
+# do not take on them) -- their errors are not, but for one: hq2x.sv (MiSTer's)
+# assigns its output wire in an always block, which Quartus takes and
+# Verilator calls an error.
+printf '%-20s ' "analogizer"
+A="$root"/target/pocket/analogizer
+out=$(verilator --lint-only $OPTS -Wno-PROCASSWIRE "$WAIVE" --top-module pocket_analogizer \
+      "$root"/target/pocket/pocket_analogizer.sv "$root"/platform/pocket/helpers/synch_3.sv \
+      "$A"/*.v "$A"/*.sv "$here"/ps2_keyboard_stub.v 2>&1 \
+      | grep -E '^%(Error|Warning)' | grep -v 'Exiting due to' \
+      | grep -v -E '^%Warning[^ ]*: [^ ]*/(target/pocket/analogizer|platform/pocket)/' || true)
+if [ -z "$out" ]; then echo ok
+else echo; echo "$out" | sed 's/^/    /'; fail=1
+fi
 [ $fail = 0 ] || exit 1
 echo "lint clean"

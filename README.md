@@ -91,6 +91,29 @@ off the menu.
   to clear — 500 frames of it, and the core lands on MAME's frame exactly.</em>
 </p>
 
+## Analogizer
+
+The core supports RndMnkIII's [Analogizer](https://github.com/RndMnkIII/Analogizer)
+adapter: the board's own 15.17 kHz picture out of the VGA port (RGBS, RGsB,
+YPbPr or Y/C; no scandoubled modes for a VGA monitor -- they do not fit in
+this core's block RAM), and SNAC controllers in.  It
+is set up in the core's own menu (Analogizer, Analogizer Video, SNAC
+Adapter, SNAC Assignment, H and V Position to centre the picture on the CRT,
+and H Size for its width -- with the set on its side, the game's height);
+with "Analogizer" off, the default, the core is unchanged.  The picture goes
+out as the board drew it, unrotated: stand the CRT on its side, a quarter
+turn anticlockwise as you face it (the top of the set to the left), as the
+cabinet's monitor was.  Because the core declares a cartridge adapter, the
+Pocket powers the slot: take any game cartridge out first.
+`docs/analogizer.md` has the modes, the controller assignments and what has
+and has not been checked (the path is proven in simulation; no Analogizer
+has been tried with this core yet).
+
+To fit the Pocket's 16 menu entries, four left the menu with it, each now
+fixed at the board's factory setting: **Scanlines** and **Shadow Mask**
+(off), **Coin B** (1 coin / 2 credits; only player 2's coin used it) and
+**Demo Sounds Off** (demo sounds on).
+
 ## Building the ROM image
 
 ```sh
@@ -122,6 +145,8 @@ tools/regress_render.sh     # the model against MAME, pixel for pixel
 sim/run_video.sh            # the RTL against the model, index for index
 sim/run_system.sh           # the whole machine, both CPUs, real program
 sim/lint.sh                 # every module on its own
+sim/run_analogizer.sh       # the Analogizer path, read at the cartridge pins
+tools/check_json.py pkg/pocket --active 320x224   # what the firmware refuses
 ```
 
 The first run of `tools/regress_render.sh` captures the frozen states from
@@ -138,3 +163,8 @@ than touching your romset.
   see `modules/VENDOR.md`.
 * The openFPGA/opengateware framework in `platform/pocket/`.
 * Guru, for the board photograph and the measurements in `docs/hardware.md`.
+* Analogizer support: **RndMnkIII**'s adapter and its `openFPGA_Pocket_Analogizer`
+  module (`target/pocket/analogizer/`, GPL-3.0-or-later), with **Mike
+  Simone**'s Y/C encoder and MiSTer's scandoubler and HQ2x (**Sorgelig**,
+  **Ludvig Strigeus**) inside it; the wrapper and menu scheme are the
+  pocket-core-template's.
