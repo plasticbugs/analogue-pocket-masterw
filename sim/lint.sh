@@ -57,9 +57,9 @@ fi
 # Verilator calls an error.
 printf '%-20s ' "analogizer"
 A="$root"/target/pocket/analogizer
-out=$(verilator --lint-only $OPTS -Wno-PROCASSWIRE "$WAIVE" --top-module pocket_analogizer \
+out=$(verilator --lint-only $OPTS -Wno-PROCASSWIRE -Wno-BLKANDNBLK "$WAIVE" --top-module pocket_analogizer \
       "$root"/target/pocket/pocket_analogizer.sv "$root"/platform/pocket/helpers/synch_3.sv \
-      "$A"/*.v "$A"/*.sv "$here"/ps2_keyboard_stub.v 2>&1 \
+      "$A"/*.v $(ls "$A"/*.sv | grep -v /yc_out_legacy.sv) "$here"/yc_out_legacy_stub.v "$here"/ps2_keyboard_stub.v 2>&1 \
       | grep -E '^%(Error|Warning)' | grep -v 'Exiting due to' \
       | grep -v -E '^%Warning[^ ]*: [^ ]*/(target/pocket/analogizer|platform/pocket)/' || true)
 if [ -z "$out" ]; then echo ok

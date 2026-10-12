@@ -314,9 +314,9 @@ place of `cont1..4_key`. **Wherever a core reads `cont*_key` directly**
   HQ2x built, it did not fit: 2,398 LABs of 1,848, HQ2x's input line
   buffers built from 21,744 registers.
 
-**Not proven:** anything on hardware with this core (the adapter module
-itself ships in RndMnkIII's cores and in plasticbugs' other cores),
-and the SNAC serial protocols, which are
+**Confirmed on a Pocket with an Analogizer and a CRT** (0.2.0).
+
+**Not proven:** the SNAC serial protocols, which are
 the adapter module's and are forced at its outputs in the bench rather than
 driven over the pins. The Y/C and YPbPr encodings have no reference to compare
 against, only a run without unknowns.
